@@ -2,10 +2,9 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>常见问题</title>
+        <title>osu!web</title>
         <link rel="stylesheet" href="style/picnic.min.css">
         <link rel="stylesheet" type="text/css" href="style/main.css">
-        <!-- <link href="//fonts.googleapis.com/css?family=Exo+2:400,600italic" rel="stylesheet" type="text/css"> -->
         <link rel="stylesheet" type="text/css" href="style/font.css">
         <link rel="icon" href="favicon.png">
     </head>
@@ -13,79 +12,64 @@
     <body>
         <nav id="main-nav">
             <div class="nav-link">
-                <a href="index.html" class="brand">Osaka Salmon University!</a>
-                <a href="new.html" class="pseudo button">最新</a>
-                <a href="hot.html" class="pseudo button">热门</a>
-                <a href="genre.html" class="pseudo button">分类</a>
+                <a href="index.html" class="brand">osu!web</a>
+                <a href="new.html" class="pseudo button">Latest</a>
+                <a href="hot.html" class="pseudo button">Popular</a>
+                <a href="genre.html" class="pseudo button">Categories</a>
             </div>
             <div class="nav-search">
                 <form action="search.html">
-                    <input type="text" name="q" placeholder="谱面关键词或sid"/>
+                    <input type="text" name="q" placeholder="Beatmap keywords or sid"/>
                     <input type="image" class="search-button" src="research.svg">
                 </form>
             </div>
             <div class="nav-tool">
-                <a href="local.html" class="pseudo button">收藏夹</a>
-                <a href="faq.html" class="pseudo button active">常见问题</a>
-                <a href="settings.html" class="pseudo button">设置</a>
-                <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">进入全屏</a>
+                <a href="local.html" class="pseudo button">Favorites</a>
+                <a href="faq.html" class="pseudo button active">FAQ</a>
+                <a href="settings.html" class="pseudo button">Settings</a>
+                <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">Fullscreen</a>
             </div>
         </nav>
 
         <div class="main-page" id="main-page">
             <div class="main-content">
                 <div class="faqentry">
-                    <h2>这游戏怎么玩？</h2>
-                    按键默认是鼠标左右键和Z、X键，可以在设置中修改。
-                    游戏屏幕上出现的圆片称为打击圈。当打击圈外侧的圆圈缩小并刚好落到打击圈上时，点击打击圈。
-                    有些打击圈带有一条滑条，你需要按住打击圈不放，并跟随其移动。
-                    当屏幕上出现一个大圆盘时，按住按键绕圆心快速转动。
+                    <h2>How do I play?</h2>
+                    Default keys are left/right mouse buttons and Z/X keys, which can be changed in settings.
+                    Circles that appear on screen are called hit circles. Click them when the outer approach circle shrinks and overlaps with the hit circle.
+                    Some hit circles have sliders attached. Hold down the key and follow the slider path.
+                    When a large spinner appears, hold down a key and spin rapidly around the center.
                 </div>
                 <div class="faqentry">
-                    <h2>光标移动好像有点延迟？</h2>
-                    试着在设置中启用硬件光标，这可以降低光标反馈的延迟。不过在有些操作系统或浏览器中可能出现闪烁或无法显示光标等问题，因此默认是关闭的。此外，目前硬件光标的光标大小调整只有固定3档，在0.65以下显示为最小，在0.95以上显示为最大。
+                    <h2>The cursor feels laggy?</h2>
+                    Try enabling hardware cursor in settings to reduce cursor latency. However, this may cause flickering or cursor visibility issues on some systems or browsers, so it's disabled by default. Currently, hardware cursor size has only 3 fixed levels: minimum below 0.65, maximum above 0.95.
                 </div>
                 <div class="faqentry">
-        			<h2>游戏玩起来非常卡，怎么办？</h2>
-        			可以在设置中取消勾选“使用系统分辨率”，并将分辨率设为比系统缩放更低的值（笔记本电脑或高分辨率屏幕的电脑系统缩放通常超过100%）。建议避免CPU占用过高，关闭类似360的杀毒软件/电脑管家，试着关闭浏览器的其它标签页并重启浏览器。请确保使用的是主流的现代浏览器（如Firefox，Chrome）。如果还是卡，请<a href="https://github.com/111116/osu">提issue</a>。
+                    <h2>The game is very laggy, what should I do?</h2>
+                    In settings, uncheck "Use system resolution" and set a lower resolution than your system scaling (laptops and high-resolution displays typically have scaling above 100%). Avoid high CPU usage, close antivirus software, try closing other browser tabs and restart the browser. Make sure you're using a modern mainstream browser (Firefox or Chrome). If it's still laggy, please <a href="https://github.com/111116/osu">file an issue</a>.
                 </div>
                 <div class="faqentry">
-                    <h2>为什么网页上什么都没显示？</h2>
-                    可能是提供谱面的镜像站出错了。您可以发现镜像站<a href="https://osu.sayobot.cn/home/new">Sayobot</a>主页上也没有任何内容。如果是这样，您可以联系镜像站的站长恢复。
-                    <!--此外，您可以将谱面加入收藏夹，游玩已收藏谱面不受镜像站出错影响。-->
+                    <h2>Why is nothing showing on the page?</h2>
+                    The mirror site providing beatmaps may be experiencing issues. You can check if the <a href="https://osu.sayobot.cn/home/new">Sayobot</a> homepage also has no content. If so, contact the mirror site administrator for recovery.
                 </div>
                 <div class="faqentry">
-                    <h2>我电脑上的下载器(IDM)弹出好多弹窗！</h2>
-                    本站使用XHR加载音画资源。请设置下载器(IDM)为在本站禁用。
+                    <h2>My download manager (IDM) keeps showing popups!</h2>
+                    This site uses XHR to load audio and visual resources. Please configure your download manager (IDM) to disable it on this site.
                 </div>
                 <div class="faqentry">
-                    <h2>能不能从本地上传谱面？</h2>
-                    此功能还在开发中。您可以搜索谱库中已有的谱面。
-                    <!-- 可以。您可以在“已收藏”谱面列表里找到添加本地谱面的入口。您添加的本地谱面只有您自己能够看到。 -->
+                    <h2>Can I upload beatmaps from my local files?</h2>
+                    This feature is still in development. You can search for beatmaps already in the database.
                 </div>
                 <div class="faqentry">
-                    <h2>音画不同步？</h2>
-                    请<a href="https://github.com/111116/osu">提issue</a>。
+                    <h2>Audio and video are out of sync?</h2>
+                    Please <a href="https://github.com/strawify/osu-web">file an issue</a>.
                 </div>
 
                 <div class="faqentry">
-                    <h2>其他问题？</h2>
-                    请<a href="https://github.com/111116/osu">提issue</a>。
+                    <h2>Other issues?</h2>
+                    Please <a href="https://github.com/strawify/osu-web">file an issue</a>.
                 </div>
             </div>
         </div>
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-169262247-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'UA-169262247-1');
-</script>
     </body>
 </html>
-
-<!-- attribution -->
-<!-- play icon made by https://www.flaticon.com/authors/those-icons -->
-<!-- search icon made by https://www.flaticon.com/authors/good-ware -->
