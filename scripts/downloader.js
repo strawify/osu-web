@@ -1,3 +1,16 @@
+const showToast = (message, type = 'info') => {
+    if (typeof Toastify !== 'undefined') {
+        Toastify({
+            text: message,
+            duration: 3000,
+            gravity: 'top',
+            position: 'right',
+            className: type,
+            stopOnFocus: true
+        }).showToast();
+    }
+};
+
 const startPreview = box => {
     const getVolume = () => {
         if (!window.gamesettings) return 1;
@@ -69,7 +82,10 @@ const logToServer = async message => {
 };
 
 const startDownload = async box => {
-    if (box.downloading) return;
+    if (box.downloading) {
+        showToast('Download already in progress', 'warning');
+        return;
+    }
 
     startPreview(box);
     box.downloading = true;
@@ -78,6 +94,10 @@ const startDownload = async box => {
 
     const url = `https://txy1.sayobot.cn/beatmaps/download/mini/${box.sid}`;
     const statuslines = document.getElementById('statuslines');
+
+    if (typeof NProgress !== 'undefined') {
+        NProgress.start();
+    }
 
     const container = document.createElement('div');
     const title = document.createElement('div');
@@ -92,6 +112,8 @@ const startDownload = async box => {
     container.appendChild(title);
     container.appendChild(progressBar);
     statuslines.insertBefore(container, statuslines.children[3]);
+
+    showToast(`Downloading: ${box.setdata.title}`, 'info');
 
     try {
         const response = await fetch(url);
@@ -111,7 +133,12 @@ const startDownload = async box => {
 
             chunks.push(value);
             receivedLength += value.length;
-            progressBar.value = receivedLength / contentLength;
+            const progress = receivedLength / contentLength;
+            progressBar.value = progress;
+            
+            if (typeof NProgress !== 'undefined') {
+                NProgress.set(progress);
+            }
         }
 
         box.oszblob = new Blob(chunks);
@@ -120,11 +147,22 @@ const startDownload = async box => {
         
         const downloadTime = Date.now() - box.download_starttime;
         logToServer(`got ${box.sid} in ${downloadTime}`);
+        
+        if (typeof NProgress !== 'undefined') {
+            NProgress.done();
+        }
+        
+        showToast(`Download complete: ${box.setdata.title}`, 'success');
     } catch (err) {
         console.error('Download failed:', err);
-        alert('Beatmap download failed. Please retry later.');
         box.downloading = false;
         box.classList.remove('downloading');
         logToServer(`fail ${box.sid}`);
+        
+        if (typeof NProgress !== 'undefined') {
+            NProgress.done();
+        }
+        
+        showToast('Beatmap download failed. Please retry later.', 'error');
     }
 };
