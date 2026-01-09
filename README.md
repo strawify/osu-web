@@ -1,10 +1,9 @@
-# ¡nso
+# osu!web
 
-A browser rhythm game where players click circles following rhythm of the music.
-
+Browser rhythm game where players click circles following rhythm of the music.
 Powered by [PixiJS](https://www.pixijs.com). Beatmap source: [Sayobot](https://osu.sayobot.cn).
-
-Note: This is an unofficial implementation of [osu!](https://osu.ppy.sh). Scoring and judgement rules differ from official versions. Some music might not be perfectly syncing. Modes other than osu! (std) are unsupported.
+Note: This is an unofficial implementation of [osu!](https://osu.ppy.sh). 
+Scoring and judgement rules differ from official versions. Some music might not be perfectly syncing. Modes other than osu! (std) are unsupported.
 
 ## Screenshots
 
