@@ -2,7 +2,7 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>戳泡泡</title>
+        <title>osu!web</title>
         <link rel="stylesheet" href="style/picnic.min.css">
         <link rel="stylesheet" type="text/css" href="style/main.css">
         <link rel="stylesheet" type="text/css" href="style/font.css">
@@ -16,8 +16,7 @@
     </head>
 
     <body>
-        <div class="game-area" id="game-area" hidden>
-        </div>
+        <div class="game-area" id="game-area" hidden></div>
 
         <div class="pause-menu" id="pause-menu" hidden>
             <div class="paused-title">paused</div>
@@ -36,38 +35,30 @@
 
         <nav id="main-nav">
             <div class="nav-link">
-                <a href="index.html" class="brand">Osaka Salmon University!</a>
-                <a href="new.html" class="pseudo button">最新</a>
-                <a href="hot.html" class="pseudo button">热门</a>
-                <a href="genre.html" class="pseudo button">分类</a>
+                <a href="index.html" class="brand">osu!web</a>
+                <a href="new.html" class="pseudo button">Latest</a>
+                <a href="hot.html" class="pseudo button">Popular</a>
+                <a href="genre.html" class="pseudo button">Categories</a>
             </div>
             <div class="nav-search">
                 <form action="search.html">
-                    <input type="text" name="q" placeholder="谱面关键词或sid"/>
+                    <input type="text" name="q" placeholder="Beatmap keywords or sid"/>
                     <input type="image" class="search-button" src="research.svg">
                 </form>
             </div>
             <div class="nav-tool">
-                <a href="local.html" class="pseudo button active">收藏夹</a>
-                <a href="faq.html" class="pseudo button">常见问题</a>
-                <a href="settings.html" class="pseudo button">设置</a>
-                <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">进入全屏</a>
+                <a href="local.html" class="pseudo button active">Favorites</a>
+                <a href="faq.html" class="pseudo button">FAQ</a>
+                <a href="settings.html" class="pseudo button">Settings</a>
+                <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">Fullscreen</a>
             </div>
         </nav>
 
         <div class="main-page" id="main-page">
             <div class="main-content">
-                <div class="beatmap-list" id="beatmap-list">
-                    <!-- to be filled in script -->
-                </div>
-                <div class="button" style="width:100%; margin-bottom: 10px;" id="btnmore">加载更多</div>
-                <div class="text">推荐使用最新版本 Firefox 或 Chrome.</div>
-                <div class="text">内测版v1.4.3. <a href="https://github.com/111116/osu">Github</a></div>
-                <div class="text">由<a href="https://osu.sayobot.cn/">Sayobot</a>提供谱面</div>
+                <div class="beatmap-list" id="beatmap-list"></div>
+                <div class="button" style="width:100%; margin-bottom: 10px;" id="btnmore">Load More</div>
             </div>
-            <!-- <div class="side-panel">
-                to be activated in script
-            </div> -->
             <div class="statuslines" id="statuslines">
                 <div class="progress" id="script-progress">
                     Scripts
@@ -84,49 +75,50 @@
             </div>
         </div>
         <script>
-            if (window.localforage) {
-                window.localforage.getItem("likedsidset", function(err, val){
-                    if (err) {
-                        alert("Error loading liked beatmap list");
-                        return;
-                    }
-                    if (val && val.size) {
-                        list = Array.from(val);
-                        function addlist(startoffset, maxlength) {
-                            for (let i=startoffset; i<list.length && i<startoffset+maxlength; ++i)
-                                addBeatmapSid(list[i]);
-                            if (list.length <= startoffset + maxlength) {
-                                document.getElementById("btnmore").setAttribute("style","display:none;");
-                            }
-                        }
-                        addlist(0,20);
-                        var cur = 20;
-                        document.getElementById("btnmore").onclick = function() {
-                            addlist(cur, 20);
-                            cur += 20;
-                        }
-                    }
-                    else {
-                        document.getElementById("beatmap-list").innerText = "你还没有收藏一首歌曲哦！点击曲目右下角的爱心以收藏这个曲目。";
-                    }
-                });
-            }
-            else {
-                alert("localforage not supported")
-            }
-        </script>
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-169262247-1"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+            const initFavorites = async () => {
+                if (!window.localforage) {
+                    alert('LocalForage not supported');
+                    return;
+                }
 
-  gtag('config', 'UA-169262247-1');
-</script>
+                try {
+                    const likedSids = await localforage.getItem('likedsidset');
+                    const beatmapList = document.getElementById('beatmap-list');
+                    const btnMore = document.getElementById('btnmore');
+
+                    if (likedSids?.size) {
+                        const sidList = Array.from(likedSids);
+                        let currentOffset = 0;
+                        const pageSize = 20;
+
+                        const loadBeatmaps = (start, count) => {
+                            const end = Math.min(start + count, sidList.length);
+                            for (let i = start; i < end; i++) {
+                                addBeatmapSid(sidList[i], beatmapList);
+                            }
+                            if (end >= sidList.length) {
+                                btnMore.style.display = 'none';
+                            }
+                        };
+
+                        loadBeatmaps(0, pageSize);
+                        currentOffset = pageSize;
+
+                        btnMore.addEventListener('click', () => {
+                            loadBeatmaps(currentOffset, pageSize);
+                            currentOffset += pageSize;
+                        });
+                    } else {
+                        beatmapList.innerText = 'No favorites yet. Click the heart icon on a beatmap to add it to your favorites.';
+                        btnMore.style.display = 'none';
+                    }
+                } catch (err) {
+                    alert('Error loading favorites');
+                    console.error(err);
+                }
+            };
+
+            initFavorites();
+        </script>
     </body>
 </html>
-
-<!-- attribution -->
-<!-- play icon made by https://www.flaticon.com/authors/those-icons -->
-<!-- search icon made by https://www.flaticon.com/authors/good-ware -->
