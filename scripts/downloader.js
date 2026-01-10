@@ -1,21 +1,23 @@
-const showToast = (message, type = 'info') => {
-    if (typeof Toastify !== 'undefined') {
-        Toastify({
-            text: message,
-            duration: 3000,
-            gravity: 'bottom',
-            position: 'right',
-            className: type,
-            stopOnFocus: true,
-            style: {
-                background: type === 'success' ? 'var(--success)' : 
-                           type === 'error' ? 'var(--error)' : 
-                           type === 'warning' ? 'var(--warning)' : 
-                           'var(--bg-elevated)'
-            }
-        }).showToast();
-    }
-};
+if (typeof showToast === 'undefined') {
+    window.showToast = (message, type = 'info') => {
+        if (typeof Toastify !== 'undefined') {
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: 'bottom',
+                position: 'right',
+                className: type,
+                stopOnFocus: true,
+                style: {
+                    background: type === 'success' ? 'var(--success)' : 
+                               type === 'error' ? 'var(--error)' : 
+                               type === 'warning' ? 'var(--warning)' : 
+                               'var(--bg-elevated)'
+                }
+            }).showToast();
+        }
+    };
+}
 
 const startPreview = box => {
     const getVolume = () => {
