@@ -77,6 +77,22 @@ class GameSettings {
         this.saveToStorage();
     }
 
+    // ADD THIS METHOD - fixes the "loadToGame is not a function" error
+    loadToGame() {
+        if (!window.game) return;
+        
+        Object.keys(this.settings).forEach(key => {
+            if (key in this.defaults) {
+                window.game[key] = this.settings[key];
+            }
+        });
+    }
+
+    // ADD THIS METHOD TOO - for refresh
+    refresh() {
+        this.loadFromStorage();
+    }
+
     reset() {
         this.settings = { ...this.defaults };
         this.saveToStorage();
