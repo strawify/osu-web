@@ -3,15 +3,15 @@
     <head>
         <meta charset="utf-8" />
         <title>osu!web</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/nprogress@0.2.0/nprogress.css">
         <link rel="stylesheet" href="style/picnic.min.css">
         <link rel="stylesheet" type="text/css" href="style/main.css">
         <link rel="stylesheet" type="text/css" href="style/font.css">
         <link rel="icon" href="favicon.png">
-        <script src="scripts/launchgame.js"></script>
-        <script src="scripts/downloader.js"></script>
-        <script src="scripts/addbeatmaplist.js"></script>
-        <script src="scripts/settings.js"></script>
-        <script src="scripts/jsloader.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+        <script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
+        <script src="scripts/lib/localforage.min.js"></script>
     </head>
 
     <body>
@@ -100,6 +100,13 @@
                 </div>
             </div>
         </div>
+
+        <script src="scripts/settings.js"></script>
+        <script src="scripts/downloader.js"></script>
+        <script src="scripts/addbeatmaplist.js"></script>
+        <script src="scripts/launchgame.js"></script>
+        <script src="scripts/jsloader.js"></script>
+
         <script>
             let currentGenre = 1;
             let currentLang = 1;
