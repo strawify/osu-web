@@ -1,380 +1,441 @@
 <!doctype html>
 <html>
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>osu!web</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <link rel="stylesheet" href="https://unpkg.com/nprogress@0.2.0/nprogress.css">
-    <link rel="stylesheet" type="text/css" href="style/main.css">
-    <link rel="stylesheet" type="text/css" href="style/font.css">
-    <link rel="icon" href="favicon.png">
-    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
-    <script src="scripts/lib/localforage.min.js"></script>
-</head>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>osu!web - Settings</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/nprogress@0.2.0/nprogress.css">
+        <link rel="stylesheet" type="text/css" href="style/main.css">
+        <link rel="stylesheet" type="text/css" href="style/font.css">
+        <link rel="icon" href="favicon.png">
+        <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+        <script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
+        <script src="scripts/lib/localforage.min.js"></script>
+    </head>
 
-<body>
-    <nav id="main-nav">
-        <div class="nav-link">
-            <a href="index.html" class="brand">osu!web</a>
-            <a href="new.html" class="pseudo button">Latest</a>
-            <a href="hot.html" class="pseudo button">Popular</a>
-            <a href="genre.html" class="pseudo button">Categories</a>
-        </div>
-        <div class="nav-search">
-            <form action="search.html">
-                <input type="text" name="q" placeholder="Beatmap keywords or sid"/>
-                <button type="submit" class="search-button">🔍</button>
-            </form>
-        </div>
-        <div class="nav-tool">
-            <a href="local.html" class="pseudo button">Favorites</a>
-            <a href="faq.html" class="pseudo button">FAQ</a>
-            <a href="settings.html" class="pseudo button active">Settings</a>
-            <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">Fullscreen</a>
-        </div>
-    </nav>
+    <body>
+        <nav id="main-nav">
+            <div class="nav-link">
+                <a href="index.html" class="brand">osu!web</a>
+                <a href="new.html" class="pseudo button">Latest</a>
+                <a href="hot.html" class="pseudo button">Popular</a>
+                <a href="genre.html" class="pseudo button">Categories</a>
+            </div>
+            <div class="nav-search">
+                <form action="search.html">
+                    <input type="text" name="q" placeholder="Beatmap keywords or sid"/>
+                    <input type="image" class="search-button" src="research.svg">
+                </form>
+            </div>
+            <div class="nav-tool">
+                <a href="local.html" class="pseudo button">Favorites</a>
+                <a href="faq.html" class="pseudo button">FAQ</a>
+                <a href="settings.html" class="pseudo button active">Settings</a>
+                <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">Fullscreen</a>
+            </div>
+        </nav>
 
-    <div class="main-page">
-        <div class="settings-container">
-            <h1 style="margin-bottom: 2rem;">Settings</h1>
+        <div class="main-page">
+            <div class="settings-container">
+                <h1>Settings</h1>
+                
+                <div class="settings-grid">
+                    <!-- Display Settings -->
+                    <div class="settings-card">
+                        <h3>Display</h3>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Background Dim
+                                <div class="setting-description">Darken background during gameplay</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="dim-range" type="range" min="0" max="100" step="1">
+                                <span class="range-value" id="dim-value">70%</span>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Background Blur
+                                <div class="setting-description">Blur background image</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="blur-range" type="range" min="0" max="10" step="0.1">
+                                <span class="range-value" id="blur-value">0.0</span>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Cursor Size
+                                <div class="setting-description">Adjust in-game cursor size</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="cursorsize-range" type="range" min="0.5" max="2.0" step="0.01">
+                                <span class="range-value" id="cursorsize-value">1.0x</span>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Hardware Cursor
+                                <div class="setting-description">Reduce cursor latency (may cause flickering)</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="showhwmouse-check" type="checkbox">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Slider Snaking In
+                                <div class="setting-description">Sliders snake in from start</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="snakein-check" type="checkbox" checked>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Slider Snaking Out
+                                <div class="setting-description">Sliders snake out to end</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="snakeout-check" type="checkbox" checked>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Auto Fullscreen
+                                <div class="setting-description">Automatically enter fullscreen when starting a map</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="autofullscreen-check" type="checkbox">
+                            </div>
+                        </div>
+                    </div>
 
-            <div class="settings-grid">
-                <!-- Display Settings -->
-                <div class="settings-card">
-                    <h3>Display</h3>
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            Background Dim
-                            <div class="setting-description">Darken background during gameplay</div>
+                    <!-- Audio Settings -->
+                    <div class="settings-card">
+                        <h3>Audio</h3>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Master Volume
+                                <div class="setting-description">Overall volume level</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="mastervolume-range" type="range" min="0" max="100" step="1">
+                                <span class="range-value" id="mastervolume-value">70%</span>
+                            </div>
                         </div>
-                        <div class="setting-control">
-                            <input id="dim-range" type="range" min="0" max="100" value="70">
-                            <span class="range-value" id="dim-value">70%</span>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Effect Volume
+                                <div class="setting-description">Hit sound effects volume</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="effectvolume-range" type="range" min="0" max="100" step="1">
+                                <span class="range-value" id="effectvolume-value">100%</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            Background Blur
-                            <div class="setting-description">Blur background image</div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Music Volume
+                                <div class="setting-description">Background music volume</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="musicvolume-range" type="range" min="0" max="100" step="1">
+                                <span class="range-value" id="musicvolume-value">100%</span>
+                            </div>
                         </div>
-                        <div class="setting-control">
-                            <input id="blur-range" type="range" min="0" max="10" step="0.1" value="0">
-                            <span class="range-value" id="blur-value">0</span>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Use Beatmap Hitsounds
+                                <div class="setting-description">Use hitsounds from beatmap files</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="beatmap-hitsound-check" type="checkbox" checked>
+                            </div>
                         </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            Cursor Size
-                            <div class="setting-description">Adjust in-game cursor size</div>
-                        </div>
-                        <div class="setting-control">
-                            <input id="cursorsize-range" type="range" min="0.5" max="2.0" step="0.01" value="1.0">
-                            <span class="range-value" id="cursorsize-value">1.0x</span>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            Hardware Cursor
-                            <div class="setting-description">Reduce cursor latency</div>
-                        </div>
-                        <div class="setting-control">
-                            <input id="showhwmouse-check" type="checkbox"><span></span>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Slider Snaking In</div>
-                        <div class="setting-control">
-                            <input id="snakein-check" type="checkbox" checked><span></span>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Slider Snaking Out</div>
-                        <div class="setting-control">
-                            <input id="snakeout-check" type="checkbox" checked><span></span>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Audio Offset
+                                <div class="setting-description">Adjust timing (±50ms)</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="audiooffset-range" type="range" min="-50" max="50" step="1">
+                                <span class="range-value" id="audiooffset-value">0ms</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Auto Fullscreen</div>
-                        <div class="setting-control">
-                            <input id="autofullscreen-check" type="checkbox"><span></span>
+
+                    <!-- Input Settings -->
+                    <div class="settings-card">
+                        <h3>Input</h3>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Disable Mouse Wheel
+                                <div class="setting-description">Prevent volume change with mouse wheel</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="disable-wheel-check" type="checkbox">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Disable Mouse Buttons
+                                <div class="setting-description">Use only keyboard for clicking</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="disable-button-check" type="checkbox">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">Left Click Key</div>
+                            <div class="setting-control">
+                                <button id="lbutton1select" class="key-button">Z</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">Right Click Key</div>
+                            <div class="setting-control">
+                                <button id="rbutton1select" class="key-button">X</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">Pause Key</div>
+                            <div class="setting-control">
+                                <button id="pausebuttonselect" class="key-button">ESC</button>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">Skip Intro Key</div>
+                            <div class="setting-control">
+                                <button id="skipbuttonselect" class="key-button">CTRL</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gameplay Settings -->
+                    <div class="settings-card">
+                        <h3>Gameplay</h3>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Enable HP Drain
+                                <div class="setting-description">Lose HP on misses</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="hpdrain-check" type="checkbox" checked>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Fail Animation
+                                <div class="setting-description">Show death animation</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="failanim-check" type="checkbox" checked>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Hide Combo Numbers
+                                <div class="setting-description">Hide combo display during gameplay</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="hidenumbers-check" type="checkbox">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Hide "Great" Text
+                                <div class="setting-description">Hide "300" hit text</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="hidegreat-check" type="checkbox">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Hide Follow Points
+                                <div class="setting-description">Hide white dots between circles</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="hidefollowpoints-check" type="checkbox">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Custom Speed -->
+                    <div class="settings-card">
+                        <h3>Custom Speed</h3>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Enable Custom Speed
+                                <div class="setting-description">Override speed mods</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="customspeed-check" type="checkbox">
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Speed Multiplier
+                                <div class="setting-description">0.5x to 2.0x</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="customspeed-range" type="range" min="0.5" max="2.0" step="0.05">
+                                <span class="range-value" id="customspeed-value">1.0x</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Settings -->
+                    <div class="settings-card">
+                        <h3>Mobile</h3>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Control Mode
+                                <div class="setting-description">How to play on mobile</div>
+                            </div>
+                            <div class="setting-control">
+                                <select id="mobile-mode-select">
+                                    <option value="auto">Auto Detect</option>
+                                    <option value="tap">Tap to Click</option>
+                                    <option value="drag">Drag to Follow</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="setting-row">
+                            <div class="setting-label">
+                                Touch Sensitivity
+                                <div class="setting-description">Adjust touch response</div>
+                            </div>
+                            <div class="setting-control">
+                                <input id="mobile-sensitivity-range" type="range" min="0.5" max="2.0" step="0.1">
+                                <span class="range-value" id="mobile-sensitivity-value">1.0x</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Audio Settings -->
+                <!-- Mods Section -->
                 <div class="settings-card">
-                    <h3>Audio</h3>
-                    <div class="setting-row">
-                        <div class="setting-label">Master Volume</div>
-                        <div class="setting-control">
-                            <input id="mastervolume-range" type="range" min="0" max="100" value="70">
-                            <span class="range-value" id="mastervolume-value">70%</span>
+                    <h3>Game Modifiers</h3>
+                    <div class="mods-grid">
+                        <div class="mod-item" data-mod="easy">
+                            <div class="mod-name">Easy</div>
+                            <div class="mod-desc">Reduced difficulty</div>
+                            <input id="easy-check" type="checkbox" hidden>
                         </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Effect Volume</div>
-                        <div class="setting-control">
-                            <input id="effectvolume-range" type="range" min="0" max="100" value="100">
-                            <span class="range-value" id="effectvolume-value">100%</span>
+                        <div class="mod-item" data-mod="nofail">
+                            <div class="mod-name">No Fail</div>
+                            <div class="mod-desc">Can't fail maps</div>
+                            <input id="nofail-check" type="checkbox" hidden>
                         </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Music Volume</div>
-                        <div class="setting-control">
-                            <input id="musicvolume-range" type="range" min="0" max="100" value="100">
-                            <span class="range-value" id="musicvolume-value">100%</span>
+                        <div class="mod-item" data-mod="halftime">
+                            <div class="mod-name">Half Time</div>
+                            <div class="mod-desc">0.75x speed</div>
+                            <input id="halftime-check" type="checkbox" hidden>
                         </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            Audio Offset
-                            <div class="setting-description">Adjust timing (±50ms)</div>
+                        <div class="mod-item" data-mod="hardrock">
+                            <div class="mod-name">Hard Rock</div>
+                            <div class="mod-desc">Increased difficulty</div>
+                            <input id="hardrock-check" type="checkbox" hidden>
                         </div>
-                        <div class="setting-control">
-                            <input id="audiooffset-range" type="range" min="-50" max="50" value="0">
-                            <span class="range-value" id="audiooffset-value">0ms</span>
+                        <div class="mod-item" data-mod="suddendeath">
+                            <div class="mod-name">Sudden Death</div>
+                            <div class="mod-desc">One miss = fail</div>
+                            <input id="suddendeath-check" type="checkbox" hidden>
+                        </div>
+                        <div class="mod-item" data-mod="doubletime">
+                            <div class="mod-name">Double Time</div>
+                            <div class="mod-desc">1.5x speed</div>
+                            <input id="doubletime-check" type="checkbox" hidden>
+                        </div>
+                        <div class="mod-item" data-mod="hidden">
+                            <div class="mod-name">Hidden</div>
+                            <div class="mod-desc">Fading circles</div>
+                            <input id="hidden-check" type="checkbox" hidden>
+                        </div>
+                        <div class="mod-item" data-mod="nightcore">
+                            <div class="mod-name">Nightcore</div>
+                            <div class="mod-desc">1.5x speed + pitch</div>
+                            <input id="nightcore-check" type="checkbox" hidden>
+                        </div>
+                        <div class="mod-item" data-mod="daycore">
+                            <div class="mod-name">Daycore</div>
+                            <div class="mod-desc">0.75x speed - pitch</div>
+                            <input id="daycore-check" type="checkbox" hidden>
+                        </div>
+                        <div class="mod-item" data-mod="relax">
+                            <div class="mod-name">Relax</div>
+                            <div class="mod-desc">Auto clicking</div>
+                            <input id="relax-check" type="checkbox" hidden>
+                        </div>
+                        <div class="mod-item" data-mod="autopilot">
+                            <div class="mod-name">Autopilot</div>
+                            <div class="mod-desc">Auto aiming</div>
+                            <input id="autopilot-check" type="checkbox" hidden>
+                        </div>
+                        <div class="mod-item" data-mod="autoplay">
+                            <div class="mod-name">Autoplay</div>
+                            <div class="mod-desc">Watch perfect play</div>
+                            <input id="autoplay-check" type="checkbox" hidden>
+                        </div>
+                        <div class="mod-item" data-mod="mirror">
+                            <div class="mod-name">Mirror</div>
+                            <div class="mod-desc">Flip horizontal</div>
+                            <input id="mirror-check" type="checkbox" hidden>
                         </div>
                     </div>
                 </div>
 
-                <!-- Input Settings -->
-                <div class="settings-card">
-                    <h3>Input</h3>
-                    <div class="setting-row">
-                        <div class="setting-label">Disable Mouse Wheel</div>
-                        <div class="setting-control">
-                            <input id="disable-wheel-check" type="checkbox"><span></span>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Disable Mouse Buttons</div>
-                        <div class="setting-control">
-                            <input id="disable-button-check" type="checkbox"><span></span>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Left Key</div>
-                        <div class="setting-control">
-                            <button id="lbutton1select" class="key-button">Z</button>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Right Key</div>
-                        <div class="setting-control">
-                            <button id="rbutton1select" class="key-button">X</button>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Pause Key</div>
-                        <div class="setting-control">
-                            <button id="pausebuttonselect" class="key-button">ESC</button>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Skip Key</div>
-                        <div class="setting-control">
-                            <button id="skipbuttonselect" class="key-button">CTRL</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Gameplay Settings -->
-                <div class="settings-card">
-                    <h3>Gameplay</h3>
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            Enable HP Drain
-                            <div class="setting-description">Lose HP on misses</div>
-                        </div>
-                        <div class="setting-control">
-                            <input id="hpdrain-check" type="checkbox" checked><span></span>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            Fail Animation
-                            <div class="setting-description">Show death animation</div>
-                        </div>
-                        <div class="setting-control">
-                            <input id="failanim-check" type="checkbox" checked><span></span>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Hide Combo Numbers</div>
-                        <div class="setting-control">
-                            <input id="hidenumbers-check" type="checkbox"><span></span>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Hide "Great" Text</div>
-                        <div class="setting-control">
-                            <input id="hidegreat-check" type="checkbox"><span></span>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">Hide Follow Points</div>
-                        <div class="setting-control">
-                            <input id="hidefollowpoints-check" type="checkbox"><span></span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mobile Settings -->
-                <div class="settings-card">
-                    <h3>Mobile</h3>
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            Control Mode
-                            <div class="setting-description">How to play on mobile</div>
-                        </div>
-                        <div class="setting-control">
-                            <select id="mobile-mode-select">
-                                <option value="auto">Auto Detect</option>
-                                <option value="tap">Tap to Click</option>
-                                <option value="drag">Drag to Follow</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-label">
-                            Touch Sensitivity
-                            <div class="setting-description">Adjust touch response</div>
-                        </div>
-                        <div class="setting-control">
-                            <input id="mobile-sensitivity-range" type="range" min="0.5" max="2.0" step="0.1" value="1.0">
-                            <span class="range-value" id="mobile-sensitivity-value">1.0x</span>
-                        </div>
-                    </div>
+                <!-- Reset Section -->
+                <div class="reset-section">
+                    <h3>Danger Zone</h3>
+                    <p>This will reset all settings to their default values.</p>
+                    <button id="restoredefault-btn" class="reset-button">
+                        Reset All Settings
+                    </button>
                 </div>
             </div>
-
-            <!-- Mods Section -->
-            <div class="settings-card">
-                <h3>Game Modifiers</h3>
-                <div class="mod-grid" id="mod-grid">
-                    <!-- Mods will be dynamically added -->
-                </div>
-            </div>
-
-            <!-- Custom Speed -->
-            <div class="settings-card" style="margin-top: 1.5rem;">
-                <h3>Custom Speed</h3>
-                <div class="setting-row">
-                    <div class="setting-label">
-                        Enable Custom Speed
-                        <div class="setting-description">Override speed mods</div>
-                    </div>
-                    <div class="setting-control">
-                        <input id="customspeed-check" type="checkbox"><span></span>
-                    </div>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-label">
-                        Speed Multiplier
-                        <div class="setting-description">0.5x to 2.0x</div>
-                    </div>
-                    <div class="setting-control">
-                        <input id="customspeed-range" type="range" min="0.5" max="2.0" step="0.05" value="1.0">
-                        <span class="range-value" id="customspeed-value">1.0x</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Reset Section -->
-            <div class="reset-section">
-                <h3 style="margin-bottom: 1rem; border: none;">Danger Zone</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
-                    This will reset all settings to their default values.
-                </p>
-                <button id="restoredefault-btn" class="reset-button">
-                    Reset All Settings
-                </button>
-            </div>
         </div>
-    </div>
 
-    <script src="scripts/settings.js"></script>
-    <script src="scripts/downloader.js"></script>
-    <script src="scripts/addbeatmaplist.js"></script>
-    <script src="scripts/launchgame.js"></script>
-    <script src="scripts/jsloader.js"></script>
+        <script src="scripts/settings.js"></script>
+        <script src="scripts/downloader.js"></script>
+        <script src="scripts/addbeatmaplist.js"></script>
+        <script src="scripts/launchgame.js"></script>
+        <script src="scripts/jsloader.js"></script>
 
-    <script>
-        // Initialize mod cards
-        const mods = [
-            { id: 'easy', name: 'Easy', desc: '-AR -CS -OD -HP' },
-            { id: 'nofail', name: 'No Fail', desc: "Can't fail" },
-            { id: 'halftime', name: 'Half Time', desc: '0.75x speed' },
-            { id: 'hardrock', name: 'Hard Rock', desc: '+AR +CS +OD +HP' },
-            { id: 'suddendeath', name: 'Sudden Death', desc: 'One miss = fail' },
-            { id: 'doubletime', name: 'Double Time', desc: '1.5x speed' },
-            { id: 'hidden', name: 'Hidden', desc: 'Fading circles' },
-            { id: 'nightcore', name: 'Nightcore', desc: '1.5x + pitch' },
-            { id: 'daycore', name: 'Daycore', desc: '0.75x - pitch' },
-            { id: 'relax', name: 'Relax', desc: 'No clicking' },
-            { id: 'autopilot', name: 'Autopilot', desc: 'Auto aim' },
-            { id: 'autoplay', name: 'Autoplay', desc: 'Watch AI' },
-            { id: 'mirror', name: 'Mirror', desc: 'Flip horizontal' }
-        ];
-
-        const modGrid = document.getElementById('mod-grid');
-        mods.forEach(mod => {
-            const modEl = document.createElement('div');
-            modEl.className = 'mod-item';
-            modEl.innerHTML = `
-                <div class="mod-name">${mod.name}</div>
-                <div class="mod-desc">${mod.desc}</div>
-            `;
-            
-            const checkbox = document.getElementById(`${mod.id}-check`);
-            if (checkbox) {
-                modEl.addEventListener('click', () => {
-                    checkbox.checked = !checkbox.checked;
-                    checkbox.dispatchEvent(new Event('change'));
-                    modEl.classList.toggle('active', checkbox.checked);
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const modItems = document.querySelectorAll('.mod-item');
+                modItems.forEach(item => {
+                    const modId = item.dataset.mod;
+                    const checkbox = document.getElementById(`${modId}-check`);
+                    
+                    if (checkbox) {
+                        item.addEventListener('click', () => {
+                            checkbox.checked = !checkbox.checked;
+                            checkbox.dispatchEvent(new Event('change'));
+                            item.classList.toggle('active', checkbox.checked);
+                        });
+                        
+                        if (checkbox.checked) {
+                            item.classList.add('active');
+                        }
+                    }
                 });
                 
-                if (checkbox.checked) {
-                    modEl.classList.add('active');
-                }
-                
-                checkbox.addEventListener('change', () => {
-                    modEl.classList.toggle('active', checkbox.checked);
+                const settingsCards = document.querySelectorAll('.settings-card');
+                settingsCards.forEach(card => {
+                    card.addEventListener('mouseenter', () => {
+                        card.style.transform = 'translateY(-4px)';
+                    });
+                    
+                    card.addEventListener('mouseleave', () => {
+                        card.style.transform = 'translateY(0)';
+                    });
                 });
-            }
-            
-            modGrid.appendChild(modEl);
-        });
-
-        // Update range value displays
-        const updateRangeDisplay = (rangeId, valueId, suffix = '') => {
-            const range = document.getElementById(rangeId);
-            const value = document.getElementById(valueId);
-            if (!range || !value) return;
-            
-            const update = () => {
-                let displayValue = range.value;
-                if (rangeId.includes('offset')) {
-                    displayValue = (displayValue > 0 ? '+' : '') + displayValue;
-                }
-                value.textContent = displayValue + suffix;
-            };
-            
-            range.addEventListener('input', update);
-            update();
-        };
-
-        updateRangeDisplay('dim-range', 'dim-value', '%');
-        updateRangeDisplay('blur-range', 'blur-value');
-        updateRangeDisplay('cursorsize-range', 'cursorsize-value', 'x');
-        updateRangeDisplay('mastervolume-range', 'mastervolume-value', '%');
-        updateRangeDisplay('effectvolume-range', 'effectvolume-value', '%');
-        updateRangeDisplay('musicvolume-range', 'musicvolume-value', '%');
-        updateRangeDisplay('audiooffset-range', 'audiooffset-value', 'ms');
-        updateRangeDisplay('customspeed-range', 'customspeed-value', 'x');
-        updateRangeDisplay('mobile-sensitivity-range', 'mobile-sensitivity-value', 'x');
-    </script>
-</body>
+            });
+        </script>
+    </body>
 </html>
