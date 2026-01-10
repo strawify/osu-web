@@ -5,230 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>osu!web</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/nprogress@0.2.0/nprogress.css">
     <link rel="stylesheet" type="text/css" href="style/main.css">
     <link rel="stylesheet" type="text/css" href="style/font.css">
     <link rel="icon" href="favicon.png">
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="scripts/settings.js"></script>
-    <style>
-        .settings-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem clamp(1rem, 5vw, 2rem);
-        }
-
-        .settings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .settings-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 0.75rem;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px var(--shadow);
-        }
-
-        .settings-card h3 {
-            margin-bottom: 1rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 1.125rem;
-        }
-
-        .setting-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.75rem 0;
-            gap: 1rem;
-        }
-
-        .setting-row:not(:last-child) {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .setting-label {
-            flex: 1;
-            font-size: 0.9375rem;
-            color: var(--text-primary);
-        }
-
-        .setting-description {
-            font-size: 0.8125rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-        }
-
-        .setting-control {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        input[type="range"] {
-            width: 10rem;
-            height: 0.375rem;
-            background: var(--bg-tertiary);
-            border-radius: 0.1875rem;
-            outline: none;
-            cursor: pointer;
-            border: 1px solid var(--border-color);
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 1.125rem;
-            height: 1.125rem;
-            border-radius: 50%;
-            background: var(--accent-primary);
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-
-        .range-value {
-            min-width: 3rem;
-            text-align: right;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-
-        .key-button {
-            padding: 0.5rem 1rem;
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.875rem;
-            font-weight: 500;
-            font-family: inherit;
-            min-width: 5rem;
-        }
-
-        .key-button:hover {
-            background: var(--bg-elevated);
-            border-color: var(--accent-secondary);
-        }
-
-        .key-button.active {
-            background: var(--accent-primary);
-            color: var(--bg-primary);
-            animation: pulse 1s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-
-        .reset-section {
-            margin-top: 2rem;
-            padding: 1.5rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 0.75rem;
-            text-align: center;
-        }
-
-        .reset-button {
-            padding: 0.75rem 2rem;
-            background: var(--error);
-            color: #ffffff;
-            border: none;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 1rem;
-            font-weight: 600;
-            font-family: inherit;
-        }
-
-        .reset-button:hover {
-            background: #cc0000;
-            transform: translateY(-2px);
-        }
-
-        .mod-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 0.75rem;
-        }
-
-        .mod-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 1rem;
-            background: var(--bg-tertiary);
-            border: 2px solid transparent;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .mod-item:hover {
-            border-color: var(--border-color);
-            background: var(--bg-elevated);
-        }
-
-        .mod-item.active {
-            border-color: var(--accent-primary);
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .mod-icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .mod-name {
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .mod-desc {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-align: center;
-            margin-top: 0.25rem;
-        }
-
-        select {
-            padding: 0.5rem 1rem;
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            border-radius: 0.375rem;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 0.875rem;
-        }
-
-        @media screen and (max-width: 768px) {
-            .settings-grid {
-                grid-template-columns: 1fr;
-            }
-
-            input[type="range"] {
-                width: 8rem;
-            }
-
-            .mod-grid {
-                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-            }
-        }
-    </style>
+    <script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
+    <script src="scripts/lib/localforage.min.js"></script>
 </head>
 
 <body>
@@ -260,7 +43,7 @@
             <div class="settings-grid">
                 <!-- Display Settings -->
                 <div class="settings-card">
-                    <h3>🎨 Display</h3>
+                    <h3>Display</h3>
                     <div class="setting-row">
                         <div class="setting-label">
                             Background Dim
@@ -322,7 +105,7 @@
 
                 <!-- Audio Settings -->
                 <div class="settings-card">
-                    <h3>🔊 Audio</h3>
+                    <h3>Audio</h3>
                     <div class="setting-row">
                         <div class="setting-label">Master Volume</div>
                         <div class="setting-control">
@@ -358,7 +141,7 @@
 
                 <!-- Input Settings -->
                 <div class="settings-card">
-                    <h3>🎮 Input</h3>
+                    <h3>Input</h3>
                     <div class="setting-row">
                         <div class="setting-label">Disable Mouse Wheel</div>
                         <div class="setting-control">
@@ -399,7 +182,7 @@
 
                 <!-- Gameplay Settings -->
                 <div class="settings-card">
-                    <h3>🎯 Gameplay</h3>
+                    <h3>Gameplay</h3>
                     <div class="setting-row">
                         <div class="setting-label">
                             Enable HP Drain
@@ -440,7 +223,7 @@
 
                 <!-- Mobile Settings -->
                 <div class="settings-card">
-                    <h3>📱 Mobile</h3>
+                    <h3>Mobile</h3>
                     <div class="setting-row">
                         <div class="setting-label">
                             Control Mode
@@ -469,7 +252,7 @@
 
             <!-- Mods Section -->
             <div class="settings-card">
-                <h3>⚡ Game Modifiers</h3>
+                <h3>Game Modifiers</h3>
                 <div class="mod-grid" id="mod-grid">
                     <!-- Mods will be dynamically added -->
                 </div>
@@ -477,7 +260,7 @@
 
             <!-- Custom Speed -->
             <div class="settings-card" style="margin-top: 1.5rem;">
-                <h3>🎵 Custom Speed</h3>
+                <h3>Custom Speed</h3>
                 <div class="setting-row">
                     <div class="setting-label">
                         Enable Custom Speed
@@ -501,7 +284,7 @@
 
             <!-- Reset Section -->
             <div class="reset-section">
-                <h3 style="margin-bottom: 1rem; border: none;">⚠️ Danger Zone</h3>
+                <h3 style="margin-bottom: 1rem; border: none;">Danger Zone</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 1rem;">
                     This will reset all settings to their default values.
                 </p>
@@ -512,22 +295,28 @@
         </div>
     </div>
 
+    <script src="scripts/settings.js"></script>
+    <script src="scripts/downloader.js"></script>
+    <script src="scripts/addbeatmaplist.js"></script>
+    <script src="scripts/launchgame.js"></script>
+    <script src="scripts/jsloader.js"></script>
+
     <script>
         // Initialize mod cards
         const mods = [
-            { id: 'easy', name: 'Easy', icon: '😊', desc: '-AR -CS -OD -HP' },
-            { id: 'nofail', name: 'No Fail', icon: '💚', desc: "Can't fail" },
-            { id: 'halftime', name: 'Half Time', icon: '🐌', desc: '0.75x speed' },
-            { id: 'hardrock', name: 'Hard Rock', icon: '🗿', desc: '+AR +CS +OD +HP' },
-            { id: 'suddendeath', name: 'Sudden Death', icon: '💀', desc: 'One miss = fail' },
-            { id: 'doubletime', name: 'Double Time', icon: '⚡', desc: '1.5x speed' },
-            { id: 'hidden', name: 'Hidden', icon: '👁️', desc: 'Fading circles' },
-            { id: 'nightcore', name: 'Nightcore', icon: '🌙', desc: '1.5x + pitch' },
-            { id: 'daycore', name: 'Daycore', icon: '☀️', desc: '0.75x - pitch' },
-            { id: 'relax', name: 'Relax', icon: '😌', desc: 'No clicking' },
-            { id: 'autopilot', name: 'Autopilot', icon: '✈️', desc: 'Auto aim' },
-            { id: 'autoplay', name: 'Autoplay', icon: '🤖', desc: 'Watch AI' },
-            { id: 'mirror', name: 'Mirror', icon: '🪞', desc: 'Flip horizontal' }
+            { id: 'easy', name: 'Easy', desc: '-AR -CS -OD -HP' },
+            { id: 'nofail', name: 'No Fail', desc: "Can't fail" },
+            { id: 'halftime', name: 'Half Time', desc: '0.75x speed' },
+            { id: 'hardrock', name: 'Hard Rock', desc: '+AR +CS +OD +HP' },
+            { id: 'suddendeath', name: 'Sudden Death', desc: 'One miss = fail' },
+            { id: 'doubletime', name: 'Double Time', desc: '1.5x speed' },
+            { id: 'hidden', name: 'Hidden', desc: 'Fading circles' },
+            { id: 'nightcore', name: 'Nightcore', desc: '1.5x + pitch' },
+            { id: 'daycore', name: 'Daycore', desc: '0.75x - pitch' },
+            { id: 'relax', name: 'Relax', desc: 'No clicking' },
+            { id: 'autopilot', name: 'Autopilot', desc: 'Auto aim' },
+            { id: 'autoplay', name: 'Autoplay', desc: 'Watch AI' },
+            { id: 'mirror', name: 'Mirror', desc: 'Flip horizontal' }
         ];
 
         const modGrid = document.getElementById('mod-grid');
@@ -535,7 +324,6 @@
             const modEl = document.createElement('div');
             modEl.className = 'mod-item';
             modEl.innerHTML = `
-                <div class="mod-icon">${mod.icon}</div>
                 <div class="mod-name">${mod.name}</div>
                 <div class="mod-desc">${mod.desc}</div>
             `;
