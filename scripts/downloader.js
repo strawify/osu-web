@@ -86,11 +86,13 @@ const startPreview = box => {
 
 const logToServer = async message => {
     try {
-        await fetch(`http://api.osugame.online/log/?msg=${encodeURIComponent(message)}`);
+        await fetch(`https://api.osugame.online/log/?msg=${encodeURIComponent(message)}`);
     } catch (err) {
         console.error('Failed to log to server:', err);
     }
 };
+
+const activeDownloads = new Map();
 
 const startDownload = async box => {
     if (box.downloading) {
@@ -98,8 +100,15 @@ const startDownload = async box => {
         return;
     }
 
+    if (activeDownloads.has(box.sid)) {
+        showToast('This beatmap is already being downloaded', 'warning');
+        return;
+    }
+
     startPreview(box);
     box.downloading = true;
+    box.downloadComplete = false;
+    activeDownloads.set(box.sid, true);
     box.classList.add('downloading');
     box.download_starttime = Date.now();
 
@@ -121,38 +130,15 @@ const startDownload = async box => {
     const progressText = document.createElement('div');
 
     container.className = 'download-progress';
-    container.style.cssText = `
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        border-radius: 0.5rem;
-        padding: 1rem;
-        margin-bottom: 0.5rem;
-        box-shadow: 0 2px 8px var(--shadow);
-    `;
+    container.dataset.sid = box.sid;
     
     titleEl.className = 'title';
-    titleEl.style.cssText = `
-        color: var(--text-primary);
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        font-size: 0.9375rem;
-    `;
     titleEl.innerText = box.setdata.title;
     
     progressBar.max = 1;
     progressBar.value = 0;
-    progressBar.style.cssText = `
-        width: 100%;
-        height: 0.5rem;
-        border-radius: 0.25rem;
-        margin-bottom: 0.25rem;
-    `;
     
-    progressText.style.cssText = `
-        font-size: 0.8125rem;
-        color: var(--text-secondary);
-        text-align: right;
-    `;
+    progressText.className = 'progress-text';
     progressText.innerText = '0%';
 
     container.appendChild(titleEl);
@@ -198,7 +184,10 @@ const startDownload = async box => {
             const remaining = (contentLength - receivedLength) / (speed * 1024);
             
             if (speed > 0 && remaining > 0) {
-                progressText.innerText = `${percentage}% - ${speed.toFixed(1)} KB/s - ${remaining.toFixed(0)}s remaining`;
+                progressText.innerHTML = `
+                    <span>${percentage}%</span>
+                    <span class="progress-speed">${speed.toFixed(1)} KB/s - ${remaining.toFixed(0)}s remaining</span>
+                `;
             }
             
             if (typeof NProgress !== 'undefined') {
@@ -207,12 +196,13 @@ const startDownload = async box => {
         }
 
         box.oszblob = new Blob(chunks);
-        progressBar.className = 'finished';
-        progressBar.style.cssText += 'background: var(--success);';
-        progressText.innerText = '100% - Complete!';
-        progressText.style.color = 'var(--success)';
-        box.classList.remove('downloading');
-        box.classList.add('downloaded');
+        box.downloadComplete = true;
+        box.downloading = false;
+        activeDownloads.delete(box.sid);
+        
+        container.classList.add('completed');
+        progressBar.value = 1;
+        progressText.innerHTML = '<span>100% - Complete!</span>';
         
         const downloadTime = Date.now() - box.download_starttime;
         const sizeMB = (contentLength / 1024 / 1024).toFixed(2);
@@ -237,11 +227,10 @@ const startDownload = async box => {
     } catch (err) {
         console.error('Download failed:', err);
         box.downloading = false;
-        box.classList.remove('downloading');
+        activeDownloads.delete(box.sid);
         
-        progressBar.style.cssText += 'background: var(--error);';
-        progressText.innerText = 'Download failed!';
-        progressText.style.color = 'var(--error)';
+        container.classList.add('failed');
+        progressText.innerHTML = '<span>Download failed!</span>';
         
         logToServer(`failed ${box.sid}: ${err.message}`);
         
