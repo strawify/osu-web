@@ -1,5 +1,5 @@
 # osu!web
-Rewritten version of [webosu](https://github.com/111116/webosu) & Rhythm game where players click circles following rhythm of the music & Scoring and judgement rules differ from official versions. Some music might not be perfectly syncing. Modes other than osu! (std) are **unsupported**.  
+Rhythm game where players click circles following rhythm of the music & Scoring and judgement rules differ from official versions. Some music might not be perfectly syncing. Modes other than osu! (std) are **unsupported**.  
 Note: This is an unofficial implementation of [osu!](https://osu.ppy.sh).  
 
 # Screenshots
