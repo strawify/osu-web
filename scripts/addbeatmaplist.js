@@ -36,24 +36,25 @@ const getDifficultyClass = star => {
 
 let currentDifficultyMenu = null;
 
-const createStarDisplay = star => {
-    const container = document.createElement("div");
-    container.className = "star-display";
-    
-    const icon = document.createElement("img");
-    icon.src = "star.png";
-    icon.alt = "star";
-    
-    const text = document.createElement("span");
-    text.innerText = star != null ? star.toFixed(2) : "N/A";
-    
-    container.appendChild(icon);
-    container.appendChild(text);
-    return container;
-};
-
 const showDifficultyMenu = (box, event) => {
     event.stopPropagation();
+    
+    if (!box.data || !Array.isArray(box.data) || box.data.length === 0) {
+        console.log('No difficulty data available yet');
+        
+        if (box.setdata && box.setdata.title) {
+            showToast(`Loading difficulties for ${box.setdata.title}...`, 'info');
+        } else {
+            showToast('Loading beatmap data...', 'info');
+        }
+        
+        setTimeout(() => {
+            if (box.data && box.data.length > 0) {
+                showDifficultyMenu(box, event);
+            }
+        }, 500);
+        return;
+    }
     
     if (currentDifficultyMenu) {
         currentDifficultyMenu.remove();
@@ -69,69 +70,83 @@ const showDifficultyMenu = (box, event) => {
         }
     }
     
-    if (!box.data || box.data.length === 0) {
-        showToast('No difficulties available for this beatmap', 'warning');
-        return;
-    }
-    
     box.classList.add('has-diff-menu');
     
     const menu = document.createElement('div');
     menu.className = 'difficulty-selection-menu';
     currentDifficultyMenu = menu;
     
-    const difficulties = box.data.sort((a, b) => a.star - b.star);
+    const difficulties = box.data
+        .filter(d => d.mode === 0)
+        .sort((a, b) => a.star - b.star);
     
-    difficulties.forEach(diff => {
-        const item = document.createElement('div');
-        item.className = 'difficulty-item';
-        item.dataset.bid = diff.bid;
-        item.dataset.sid = box.sid;
-        
-        const diffClass = getDifficultyClass(diff.star);
-        
-        item.innerHTML = `
-            <div class="difficulty-ring ${diffClass}"></div>
+    if (difficulties.length === 0) {
+        const noDiffItem = document.createElement('div');
+        noDiffItem.className = 'difficulty-item';
+        noDiffItem.innerHTML = `
             <div class="difficulty-info">
-                <div class="difficulty-version">${diff.version}</div>
-                <div class="difficulty-mapper">Mapped by ${diff.creator}</div>
-                <div class="difficulty-stats">
-                    <span>CS: ${diff.difficultyrating}</span>
-                    <span>OD: ${diff.overalldifficulty}</span>
-                    <span class="difficulty-star">
-                        <img src="star.png" alt="star">
-                        ${parseFloat(diff.difficultyrating).toFixed(2)}
-                    </span>
-                </div>
+                <div class="difficulty-version">No osu!standard difficulties</div>
+                <div class="difficulty-mapper">This beatmap might be for other modes</div>
             </div>
         `;
-        
-        item.addEventListener('click', (e) => {
-            e.stopPropagation();
+        menu.appendChild(noDiffItem);
+    } else {
+        difficulties.forEach(diff => {
+            const item = document.createElement('div');
+            item.className = 'difficulty-item';
+            item.dataset.bid = diff.bid;
+            item.dataset.sid = box.sid;
             
-            if (box.downloading && !box.downloadComplete) {
-                showToast('Beatmap is still downloading...', 'warning');
-                return;
-            }
+            const diffClass = getDifficultyClass(diff.star);
             
-            if (!box.oszblob) {
-                showToast('Please wait for download to complete', 'warning');
-                return;
-            }
+            item.innerHTML = `
+                <div class="difficulty-ring ${diffClass}"></div>
+                <div class="difficulty-info">
+                    <div class="difficulty-version">${diff.version}</div>
+                    <div class="difficulty-mapper">Mapped by ${diff.creator}</div>
+                    <div class="difficulty-stats">
+                        <span>CS: ${diff.difficultyrating}</span>
+                        <span>OD: ${diff.overalldifficulty}</span>
+                        <span class="difficulty-star">
+                            <img src="star.png" alt="star">
+                            ${parseFloat(diff.difficultyrating).toFixed(2)}
+                        </span>
+                    </div>
+                </div>
+            `;
             
-            launchGame(box.oszblob, diff.bid, diff.version);
-            menu.remove();
-            currentDifficultyMenu = null;
-            box.classList.remove('has-diff-menu');
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                if (box.downloading && !box.downloadComplete) {
+                    showToast('Beatmap is still downloading...', 'warning');
+                    return;
+                }
+                
+                if (!box.oszblob) {
+                    showToast('Please wait for download to complete', 'warning');
+                    return;
+                }
+                
+                if (typeof launchGame === 'function') {
+                    launchGame(box.oszblob, diff.bid, diff.version);
+                } else {
+                    showToast('Game system not ready yet', 'error');
+                }
+                
+                menu.remove();
+                currentDifficultyMenu = null;
+                box.classList.remove('has-diff-menu');
+            });
+            
+            menu.appendChild(item);
         });
-        
-        menu.appendChild(item);
-    });
+    }
     
     box.appendChild(menu);
     
     const closeMenu = (e) => {
-        if (menu && !menu.contains(e.target) && e.target !== box) {
+        if (menu && !menu.contains(e.target) && e.target !== box && !box.contains(e.target)) {
             menu.remove();
             currentDifficultyMenu = null;
             box.classList.remove('has-diff-menu');
@@ -142,6 +157,15 @@ const showDifficultyMenu = (box, event) => {
     setTimeout(() => {
         document.addEventListener('click', closeMenu);
     }, 10);
+    
+    const rect = box.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    
+    if (rect.bottom + menu.offsetHeight > viewportHeight - 20) {
+        menu.style.bottom = '100%';
+        menu.style.top = 'auto';
+        menu.style.borderRadius = '16px 16px 0 0';
+    }
 };
 
 const BeatmapManager = {
@@ -221,30 +245,34 @@ const BeatmapManager = {
         box.setdata = map;
         box.sid = map.sid;
         box.className = "beatmapbox";
+        box.dataset.sid = map.sid;
 
         const cover = document.createElement("img");
         cover.className = "beatmapcover";
         cover.alt = map.title;
         cover.src = `https://cdn.sayobot.cn:25225/beatmaps/${map.sid}/covers/cover.webp`;
         cover.loading = "lazy";
+        cover.onerror = function() {
+            this.src = 'https://via.placeholder.com/380x160/1a1a1a/ffffff?text=No+Image';
+        };
 
         const overlay = document.createElement("div");
         overlay.className = "beatmapcover-overlay";
 
         const title = document.createElement("div");
         title.className = "beatmaptitle";
-        title.innerText = map.title;
+        title.innerText = map.title || "Unknown Title";
 
         const artist = document.createElement("div");
         artist.className = "beatmapartist";
-        artist.innerText = map.artist;
+        artist.innerText = map.artist || "Unknown Artist";
 
         const infoContainer = document.createElement("div");
         infoContainer.className = "beatmap-info-container";
 
         const creator = document.createElement("div");
         creator.className = "beatmapcreator";
-        creator.innerText = `Mapped by ${map.creator}`;
+        creator.innerText = `Mapped by ${map.creator || "Unknown"}`;
 
         const approved = document.createElement("div");
         approved.className = "beatmapapproved";
@@ -260,7 +288,10 @@ const BeatmapManager = {
         infoContainer.appendChild(approved);
         
         this.addLikeIcon(box);
-        list.appendChild(box);
+        
+        if (list) {
+            list.appendChild(box);
+        }
 
         return box;
     },
@@ -269,17 +300,22 @@ const BeatmapManager = {
         const container = document.createElement("div");
         container.className = "beatmap-difficulties";
         
-        if (data.length === 0) {
+        if (!data || data.length === 0) {
             const tag = document.createElement("div");
             tag.className = "difficulty-tag";
-            tag.innerText = "No std map";
+            tag.innerText = "Loading...";
             container.appendChild(tag);
         } else {
             const difficulties = data
                 .filter(d => d.mode === 0)
                 .sort((a, b) => a.star - b.star);
             
-            if (difficulties.length <= 4) {
+            if (difficulties.length === 0) {
+                const tag = document.createElement("div");
+                tag.className = "difficulty-tag";
+                tag.innerText = "No std";
+                container.appendChild(tag);
+            } else if (difficulties.length <= 4) {
                 difficulties.forEach(diff => {
                     const tag = document.createElement("div");
                     tag.className = `difficulty-tag ${getDifficultyClass(diff.star)}`;
@@ -313,51 +349,34 @@ const BeatmapManager = {
         }
     },
 
-    addLengthInfo(box, data) {
-        const lengths = data.map(d => d.length || 0);
-        const maxLength = Math.max(...lengths);
-        
-        if (maxLength > 0) {
-            const lengthDiv = document.createElement("div");
-            lengthDiv.className = "beatmaplength";
-            
-            const minutes = Math.floor(maxLength / 60);
-            const seconds = maxLength % 60;
-            lengthDiv.innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-            
-            box.appendChild(lengthDiv);
-        }
-    },
-
-    addBPMInfo(box, data) {
-        const bpms = data.map(d => d.bpm || 0).filter(bpm => bpm > 0);
-        if (bpms.length > 0) {
-            const avgBPM = Math.round(bpms.reduce((a, b) => a + b) / bpms.length);
-            const bpmDiv = document.createElement("div");
-            bpmDiv.className = "beatmapbpm";
-            bpmDiv.innerText = `${avgBPM} BPM`;
-            box.appendChild(bpmDiv);
-        }
-    },
-
     addMoreInfo(box, data) {
+        if (!data || !Array.isArray(data)) {
+            console.warn('No valid data for beatmap', box.sid);
+            return;
+        }
+        
         const stdData = data
             .filter(o => o.mode === 0)
             .sort((a, b) => a.star - b.star);
         
         box.data = stdData;
         this.addDifficultyTags(box, stdData);
-        this.addLengthInfo(box, stdData);
-        this.addBPMInfo(box, stdData);
     },
 
     async requestMoreInfo(box) {
         try {
             const response = await fetch(`https://api.sayobot.cn/beatmapinfo?1=${box.sid}`);
             const data = await response.json();
-            this.addMoreInfo(box, data.data);
+            
+            if (data && data.data) {
+                this.addMoreInfo(box, data.data);
+            } else {
+                console.error('Invalid response format for beatmap info:', data);
+                this.addDifficultyTags(box, []);
+            }
         } catch (err) {
             console.error("Failed to fetch beatmap info:", err);
+            this.addDifficultyTags(box, []);
         }
     }
 };
@@ -393,18 +412,18 @@ const addBeatmapList = async (listUrl, list, filter, maxSize) => {
 
         for (let i = 0; i < data.length; i++) {
             boxes[i].sid = data[i].sid;
-            BeatmapManager.requestMoreInfo(boxes[i]);
             
             boxes[i].onclick = function(e) {
                 if (e.target.closest('.beatmaplike')) return;
                 showDifficultyMenu(this, e);
                 startDownload(this);
             };
+            
+            BeatmapManager.requestMoreInfo(boxes[i]);
         }
 
         if (window.beatmaplistLoadedCallback) {
             window.beatmaplistLoadedCallback();
-            window.beatmaplistLoadedCallback = null;
         }
     } catch (err) {
         console.error("Failed to load beatmap list:", err);
@@ -426,17 +445,17 @@ const addBeatmapSid = async (sid, list) => {
 
         const box = BeatmapManager.addPreviewBox(res.data, list);
         box.sid = res.data.sid;
-        BeatmapManager.requestMoreInfo(box);
         
         box.onclick = function(e) {
             if (e.target.closest('.beatmaplike')) return;
             showDifficultyMenu(this, e);
             startDownload(this);
         };
+        
+        BeatmapManager.requestMoreInfo(box);
 
         if (window.beatmaplistLoadedCallback) {
             window.beatmaplistLoadedCallback();
-            window.beatmaplistLoadedCallback = null;
         }
     } catch (err) {
         console.error("Failed to load beatmap:", err);
