@@ -29,17 +29,22 @@ const getStarName = star => {
     return "expert-plus";
 };
 
+const getDifficultyClass = star => {
+    const name = getStarName(star);
+    return name === 'unknown' ? '' : name;
+};
+
+let currentDifficultyMenu = null;
+
 const createStarDisplay = star => {
     const container = document.createElement("div");
     container.className = "star-display";
-    container.style.cssText = "display: flex; align-items: center; gap: 0.25rem;";
     
     const icon = document.createElement("img");
     icon.src = "star.png";
-    icon.style.cssText = "width: 1rem; height: 1rem; filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.5));";
+    icon.alt = "star";
     
     const text = document.createElement("span");
-    text.style.cssText = "font-size: 0.875rem; font-weight: 600; color: var(--text-primary);";
     text.innerText = star != null ? star.toFixed(2) : "N/A";
     
     container.appendChild(icon);
@@ -47,92 +52,114 @@ const createStarDisplay = star => {
     return container;
 };
 
-const createDifficultyList = (boxClicked, event) => {
-    if (window.currentDifficultyList) {
-        window.currentDifficultyList.remove();
-        window.currentDifficultyList = null;
-    }
-
+const showDifficultyMenu = (box, event) => {
     event.stopPropagation();
-
-    const difficultyBox = document.createElement("div");
-    window.currentDifficultyList = difficultyBox;
-    difficultyBox.className = "difficulty-box";
-    boxClicked.appendChild(difficultyBox);
-
-    const closeDifficultyList = (e) => {
-        if (!difficultyBox.contains(e.target) && e.target !== boxClicked) {
-            difficultyBox.remove();
-            window.currentDifficultyList = null;
-            document.removeEventListener('click', closeDifficultyList, false);
+    
+    if (currentDifficultyMenu) {
+        currentDifficultyMenu.remove();
+        currentDifficultyMenu = null;
+        
+        const prevBox = document.querySelector('.beatmapbox.has-diff-menu');
+        if (prevBox) {
+            prevBox.classList.remove('has-diff-menu');
         }
-    };
-
-    setTimeout(() => {
-        document.addEventListener("click", closeDifficultyList, false);
-    }, 100);
-
-    for (const difficulty of boxClicked.data) {
-        const difficultyItem = document.createElement("div");
-        difficultyItem.className = "difficulty-item";
-        difficultyBox.appendChild(difficultyItem);
-        difficultyItem.data = difficulty;
-
-        const ringBase = document.createElement("div");
-        const ring = document.createElement("div");
-        ringBase.className = "bigringbase";
-        ring.className = "bigring";
-        ring.classList.add(getStarName(difficulty.star));
-        difficultyItem.appendChild(ringBase);
-        difficultyItem.appendChild(ring);
-
-        const line = document.createElement("div");
-        const version = document.createElement("div");
-        const mapper = document.createElement("div");
-        line.className = "versionline";
-        version.className = "version";
-        mapper.className = "mapper";
-        line.appendChild(version);
-        line.appendChild(mapper);
-        difficultyItem.appendChild(line);
-        version.innerText = difficulty.version;
-        mapper.innerText = `mapped by ${difficulty.creator}`;
-
-        difficultyItem.appendChild(createStarDisplay(difficulty.star));
-
-        difficultyItem.onclick = function(e) {
+        
+        if (prevBox === box) {
+            return;
+        }
+    }
+    
+    if (!box.data || box.data.length === 0) {
+        showToast('No difficulties available for this beatmap', 'warning');
+        return;
+    }
+    
+    box.classList.add('has-diff-menu');
+    
+    const menu = document.createElement('div');
+    menu.className = 'difficulty-selection-menu';
+    currentDifficultyMenu = menu;
+    
+    const difficulties = box.data.sort((a, b) => a.star - b.star);
+    
+    difficulties.forEach(diff => {
+        const item = document.createElement('div');
+        item.className = 'difficulty-item';
+        item.dataset.bid = diff.bid;
+        item.dataset.sid = box.sid;
+        
+        const diffClass = getDifficultyClass(diff.star);
+        
+        item.innerHTML = `
+            <div class="difficulty-ring ${diffClass}"></div>
+            <div class="difficulty-info">
+                <div class="difficulty-version">${diff.version}</div>
+                <div class="difficulty-mapper">Mapped by ${diff.creator}</div>
+                <div class="difficulty-stats">
+                    <span>CS: ${diff.difficultyrating}</span>
+                    <span>OD: ${diff.overalldifficulty}</span>
+                    <span class="difficulty-star">
+                        <img src="star.png" alt="star">
+                        ${parseFloat(diff.difficultyrating).toFixed(2)}
+                    </span>
+                </div>
+            </div>
+        `;
+        
+        item.addEventListener('click', (e) => {
             e.stopPropagation();
             
-            if (!boxClicked.oszblob) {
+            if (box.downloading && !box.downloadComplete) {
                 showToast('Beatmap is still downloading...', 'warning');
                 return;
             }
             
-            launchGame(boxClicked.oszblob, this.data.bid, this.data.version);
-        };
-    }
-
-    difficultyBox.onclick = e => e.stopPropagation();
+            if (!box.oszblob) {
+                showToast('Please wait for download to complete', 'warning');
+                return;
+            }
+            
+            launchGame(box.oszblob, diff.bid, diff.version);
+            menu.remove();
+            currentDifficultyMenu = null;
+            box.classList.remove('has-diff-menu');
+        });
+        
+        menu.appendChild(item);
+    });
+    
+    box.appendChild(menu);
+    
+    const closeMenu = (e) => {
+        if (menu && !menu.contains(e.target) && e.target !== box) {
+            menu.remove();
+            currentDifficultyMenu = null;
+            box.classList.remove('has-diff-menu');
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+    
+    setTimeout(() => {
+        document.addEventListener('click', closeMenu);
+    }, 10);
 };
 
 const BeatmapManager = {
     addLikeIcon(box) {
         const icon = document.createElement("div");
-        icon.className = "beatmaplike";
-        icon.setAttribute("hidden", "");
+        icon.className = "beatmaplike icon-heart-empty";
         box.appendChild(icon);
 
         box.initLike = () => {
             if (!window.liked_sid_set || !box.sid) return;
 
             if (window.liked_sid_set.has(box.sid)) {
+                icon.classList.remove("icon-heart-empty");
                 icon.classList.add("icon-heart");
                 icon.onclick = box.undoLike;
             } else {
-                icon.classList.add("icon-heart-empty");
                 icon.onclick = box.like;
             }
-            icon.removeAttribute("hidden");
         };
 
         box.like = async e => {
@@ -141,15 +168,14 @@ const BeatmapManager = {
             
             try {
                 await localforage.setItem("likedsidset", window.liked_sid_set);
+                icon.classList.remove("icon-heart-empty");
+                icon.classList.add("icon-heart");
+                icon.onclick = box.undoLike;
                 showToast('Added to favorites', 'success');
             } catch (err) {
                 console.error("Error saving liked beatmap list:", err);
                 showToast('Failed to save favorite', 'error');
             }
-            
-            icon.onclick = box.undoLike;
-            icon.classList.remove("icon-heart-empty");
-            icon.classList.add("icon-heart");
         };
 
         box.undoLike = async e => {
@@ -158,14 +184,13 @@ const BeatmapManager = {
             
             try {
                 await localforage.setItem("likedsidset", window.liked_sid_set);
+                icon.classList.remove("icon-heart");
+                icon.classList.add("icon-heart-empty");
+                icon.onclick = box.like;
                 showToast('Removed from favorites', 'info');
             } catch (err) {
                 console.error("Error saving liked beatmap list:", err);
             }
-            
-            icon.onclick = box.like;
-            icon.classList.remove("icon-heart");
-            icon.classList.add("icon-heart-empty");
         };
 
         if (window.liked_sid_set) {
@@ -199,7 +224,7 @@ const BeatmapManager = {
 
         const cover = document.createElement("img");
         cover.className = "beatmapcover";
-        cover.alt = `cover${map.sid}`;
+        cover.alt = map.title;
         cover.src = `https://cdn.sayobot.cn:25225/beatmaps/${map.sid}/covers/cover.webp`;
         cover.loading = "lazy";
 
@@ -214,9 +239,12 @@ const BeatmapManager = {
         artist.className = "beatmapartist";
         artist.innerText = map.artist;
 
+        const infoContainer = document.createElement("div");
+        infoContainer.className = "beatmap-info-container";
+
         const creator = document.createElement("div");
         creator.className = "beatmapcreator";
-        creator.innerText = `mapped by ${map.creator}`;
+        creator.innerText = `Mapped by ${map.creator}`;
 
         const approved = document.createElement("div");
         approved.className = "beatmapapproved";
@@ -226,8 +254,10 @@ const BeatmapManager = {
         box.appendChild(overlay);
         box.appendChild(title);
         box.appendChild(artist);
-        box.appendChild(creator);
-        box.appendChild(approved);
+        box.appendChild(infoContainer);
+        
+        infoContainer.appendChild(creator);
+        infoContainer.appendChild(approved);
         
         this.addLikeIcon(box);
         list.appendChild(box);
@@ -235,51 +265,79 @@ const BeatmapManager = {
         return box;
     },
 
-    addStarRings(box, data) {
-        const stars = data.map(d => d.star);
-        const row = document.createElement("div");
-        row.className = "beatmap-difficulties";
-        box.appendChild(row);
-
+    addDifficultyTags(box, data) {
+        const container = document.createElement("div");
+        container.className = "beatmap-difficulties";
+        
         if (data.length === 0) {
-            const cnt = document.createElement("span");
-            cnt.className = "difficulty-count";
-            cnt.innerText = "no std map";
-            row.appendChild(cnt);
-            return;
-        }
-
-        if (stars.length <= 13) {
-            for (const star of stars) {
-                const ring = document.createElement("div");
-                ring.className = "difficulty-ring";
-                const starClass = getStarName(star);
-                if (starClass) ring.classList.add(starClass);
-                row.appendChild(ring);
-            }
+            const tag = document.createElement("div");
+            tag.className = "difficulty-tag";
+            tag.innerText = "No std map";
+            container.appendChild(tag);
         } else {
-            const ring = document.createElement("div");
-            ring.className = "difficulty-ring";
-            const starClass = getStarName(stars[stars.length - 1]);
-            if (starClass) ring.classList.add(starClass);
-            row.appendChild(ring);
-
-            const cnt = document.createElement("span");
-            cnt.className = "difficulty-count";
-            cnt.innerText = stars.length;
-            row.appendChild(cnt);
+            const difficulties = data
+                .filter(d => d.mode === 0)
+                .sort((a, b) => a.star - b.star);
+            
+            if (difficulties.length <= 4) {
+                difficulties.forEach(diff => {
+                    const tag = document.createElement("div");
+                    tag.className = `difficulty-tag ${getDifficultyClass(diff.star)}`;
+                    tag.innerText = getDifficultyClass(diff.star).toUpperCase();
+                    container.appendChild(tag);
+                });
+            } else {
+                const first = difficulties[0];
+                const last = difficulties[difficulties.length - 1];
+                
+                const easyTag = document.createElement("div");
+                easyTag.className = `difficulty-tag ${getDifficultyClass(first.star)}`;
+                easyTag.innerText = getDifficultyClass(first.star).toUpperCase();
+                container.appendChild(easyTag);
+                
+                const countTag = document.createElement("div");
+                countTag.className = "difficulty-tag";
+                countTag.innerText = `+${difficulties.length - 2}`;
+                container.appendChild(countTag);
+                
+                const hardTag = document.createElement("div");
+                hardTag.className = `difficulty-tag ${getDifficultyClass(last.star)}`;
+                hardTag.innerText = getDifficultyClass(last.star).toUpperCase();
+                container.appendChild(hardTag);
+            }
+        }
+        
+        const infoContainer = box.querySelector('.beatmap-info-container');
+        if (infoContainer) {
+            infoContainer.appendChild(container);
         }
     },
 
-    addLength(box, data) {
-        const length = Math.max(...data.map(d => d.length || 0));
-        const lengthDiv = document.createElement("div");
-        lengthDiv.className = "beatmaplength";
-        box.appendChild(lengthDiv);
+    addLengthInfo(box, data) {
+        const lengths = data.map(d => d.length || 0);
+        const maxLength = Math.max(...lengths);
         
-        const minutes = Math.floor(length / 60);
-        const seconds = length % 60;
-        lengthDiv.innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        if (maxLength > 0) {
+            const lengthDiv = document.createElement("div");
+            lengthDiv.className = "beatmaplength";
+            
+            const minutes = Math.floor(maxLength / 60);
+            const seconds = maxLength % 60;
+            lengthDiv.innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            
+            box.appendChild(lengthDiv);
+        }
+    },
+
+    addBPMInfo(box, data) {
+        const bpms = data.map(d => d.bpm || 0).filter(bpm => bpm > 0);
+        if (bpms.length > 0) {
+            const avgBPM = Math.round(bpms.reduce((a, b) => a + b) / bpms.length);
+            const bpmDiv = document.createElement("div");
+            bpmDiv.className = "beatmapbpm";
+            bpmDiv.innerText = `${avgBPM} BPM`;
+            box.appendChild(bpmDiv);
+        }
     },
 
     addMoreInfo(box, data) {
@@ -288,8 +346,9 @@ const BeatmapManager = {
             .sort((a, b) => a.star - b.star);
         
         box.data = stdData;
-        this.addStarRings(box, stdData);
-        this.addLength(box, stdData);
+        this.addDifficultyTags(box, stdData);
+        this.addLengthInfo(box, stdData);
+        this.addBPMInfo(box, stdData);
     },
 
     async requestMoreInfo(box) {
@@ -337,8 +396,9 @@ const addBeatmapList = async (listUrl, list, filter, maxSize) => {
             BeatmapManager.requestMoreInfo(boxes[i]);
             
             boxes[i].onclick = function(e) {
-                createDifficultyList(boxes[i], e);
-                startDownload(boxes[i]);
+                if (e.target.closest('.beatmaplike')) return;
+                showDifficultyMenu(this, e);
+                startDownload(this);
             };
         }
 
@@ -369,8 +429,9 @@ const addBeatmapSid = async (sid, list) => {
         BeatmapManager.requestMoreInfo(box);
         
         box.onclick = function(e) {
-            createDifficultyList(box, e);
-            startDownload(box);
+            if (e.target.closest('.beatmaplike')) return;
+            showDifficultyMenu(this, e);
+            startDownload(this);
         };
 
         if (window.beatmaplistLoadedCallback) {
