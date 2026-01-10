@@ -15,77 +15,80 @@ window.skinReady = false;
 window.soundReady = false;
 
 window.beatmaplistLoadedCallback = function () {
-    window.setTimeout(function(){
-        console.log('Loading game dependencies...');
+    console.log('Loading game dependencies...');
+    
+    let loadedCount = 0;
+    const totalDeps = 4;
+    
+    function checkdep() {
+        loadedCount++;
+        console.log(`Loaded dependency ${loadedCount}/${totalDeps}`);
         
-        let loadedCount = 0;
-        const totalDeps = 4;
-        
-        function checkdep() {
-            loadedCount++;
-            console.log(`Loaded dependency ${loadedCount}/${totalDeps}`);
+        if (loadedCount === totalDeps) {
+            console.log('All dependencies loaded, loading main game scripts...');
             
-            if (loadedCount === totalDeps) {
-                console.log('All dependencies loaded, loading main game scripts...');
-                
-                loadScript("scripts/lib/require.js", function() {
-                    require.config({
-                        paths: {
-                            underscore: 'lib/underscore',
-                            sound: 'lib/sound'
-                        },
-                        shim: {
-                            "underscore": {
-                                exports: "_"
-                            }
+            loadScript("scripts/lib/require.js", function() {
+                require.config({
+                    paths: {
+                        underscore: 'scripts/lib/underscore',
+                        sound: 'scripts/lib/sound'
+                    },
+                    shim: {
+                        "underscore": {
+                            exports: "_"
                         }
-                    });
-                    
-                    loadScript("scripts/initgame.js", function() {
-                        console.log('Game scripts loaded');
-                        window.scriptReady = true;
-                        updateLoadingStatus();
-                    });
-                }, {"data-main":"scripts/initgame"});
+                    }
+                });
                 
-                if (window.localforage) {
-                    localforage.getItem("likedsidset", function(err, item) {
-                        if (!err) {
-                            if (item && item.size) {
-                                window.liked_sid_set = item;
-                            } else {
-                                window.liked_sid_set = new Set();
-                            }
-                            if (window.liked_sid_set_callbacks) {
-                                for (let i=0; i<window.liked_sid_set_callbacks.length; ++i) {
-                                    window.liked_sid_set_callbacks[i]();
-                                }
-                                window.liked_sid_set_callbacks = [];
-                            }
+                console.log('RequireJS configured, loading game modules...');
+                
+                loadScript("scripts/initgame.js", function() {
+                    console.log('Game scripts loaded');
+                    window.scriptReady = true;
+                    updateLoadingStatus();
+                    
+                    if (window.loadSkinAndSounds) {
+                        window.loadSkinAndSounds();
+                    }
+                });
+            }, {"data-main":"scripts/initgame"});
+            
+            if (window.localforage) {
+                localforage.getItem("likedsidset", function(err, item) {
+                    if (!err) {
+                        if (item && item.size) {
+                            window.liked_sid_set = item;
                         } else {
-                            console.error("failed loading liked list");
                             window.liked_sid_set = new Set();
+                        }
+                        if (window.liked_sid_set_callbacks) {
+                            for (let i=0; i<window.liked_sid_set_callbacks.length; ++i) {
+                                window.liked_sid_set_callbacks[i]();
+                            }
                             window.liked_sid_set_callbacks = [];
                         }
-                    });
-                } else {
-                    window.liked_sid_set = new Set();
-                    window.liked_sid_set_callbacks = [];
-                }
+                    } else {
+                        console.error("failed loading liked list");
+                        window.liked_sid_set = new Set();
+                        window.liked_sid_set_callbacks = [];
+                    }
+                });
+            } else {
+                window.liked_sid_set = new Set();
+                window.liked_sid_set_callbacks = [];
             }
         }
-        
-        loadScript("scripts/lib/zip.js", function(){
-            window.zip.workerScriptsPath = 'scripts/lib/';
-            loadScript("scripts/lib/zip-fs.js", checkdep);
-        });
-        loadScript("scripts/lib/pixi.min.js", checkdep);
-        loadScript("scripts/lib/mp3parse.min.js", checkdep);
-        loadScript("scripts/lib/localforage.min.js", checkdep);
-        
-        updateLoadingStatus();
-        
-    }, 100);
+    }
+    
+    loadScript("scripts/lib/zip.js", function(){
+        window.zip.workerScriptsPath = 'scripts/lib/';
+        loadScript("scripts/lib/zip-fs.js", checkdep);
+    });
+    loadScript("scripts/lib/pixi.min.js", checkdep);
+    loadScript("scripts/lib/mp3parse.min.js", checkdep);
+    loadScript("scripts/lib/localforage.min.js", checkdep);
+    
+    updateLoadingStatus();
 }
 
 function updateLoadingStatus() {
@@ -119,12 +122,18 @@ function updateLoadingStatus() {
 }
 
 window.loadSkinAndSounds = function() {
+    console.log('loadSkinAndSounds called');
+    
     if (typeof window.sound !== 'undefined') {
+        console.log('Loading sounds...');
         window.sound.load(() => {
             console.log('Sounds loaded');
             window.soundReady = true;
             updateLoadingStatus();
         });
+    } else {
+        console.log('Sound module not available yet');
+        setTimeout(window.loadSkinAndSounds, 100);
     }
     
     if (typeof window.skin !== 'undefined') {
@@ -132,3 +141,13 @@ window.loadSkinAndSounds = function() {
         updateLoadingStatus();
     }
 };
+
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, waiting for beatmaps...');
+    
+    setTimeout(function() {
+        if (window.beatmaplistLoadedCallback) {
+            window.beatmaplistLoadedCallback();
+        }
+    }, 1000);
+});
