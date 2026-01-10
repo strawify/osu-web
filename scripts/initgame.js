@@ -1,22 +1,18 @@
 require(["osu", "underscore", "sound", "playback"],
 function(Osu, _, sound, Playback) {
-    // check for WebGL
     if (!PIXI || !PIXI.utils.isWebGLSupported())
-        alert("此网站使用WebGL绘图。您的浏览器不支持WebGL，请更换浏览器。")
+        alert("This website uses WebGL for rendering. Your browser does not support WebGL, please switch browsers.");
+    
     window.Osu = Osu;
     window.Playback = Playback;
-    // setup compatible audio context
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
-    // initialize global game variables
     var game = {
         window: window,
         stage: null,
         scene: null,
         updatePlayerActions: null,
 
-        // note: preference values here will be overwritten by gamesettings (in settings.js)
-        // display
         backgroundDimRate: 0.7,
         backgroundBlurRate: 0.0,
         cursorSize: 1.0,
@@ -24,60 +20,75 @@ function(Osu, _, sound, Playback) {
         snakein: true,
         snakeout: true,
 
-        // audio
         masterVolume: 0.7,
         effectVolume: 1.0,
         musicVolume: 1.0,
         beatmapHitsound: true,
         globalOffset: 0,
 
-        // input
-        allowMouseButton: false,
+        allowMouseButton: true,
         allowMouseScroll: true,
         K1keycode: 90,
         K2keycode: 88,
         ESCkeycode: 27,
         ESC2keycode: 27,
+        CTRLkeycode: 17,
 
-        // mods
         autoplay: false,
+        relax: false,
+        autopilot: false,
         nightcore: false,
         daycore: false,
+        doubletime: false,
+        halftime: false,
         hardrock: false,
         easy: false,
         hidden: false,
+        suddendeath: false,
+        nofail: false,
+        mirror: false,
 
-        // skin mods
+        customSpeed: 1.0,
+        useCustomSpeed: false,
+
         hideNumbers: false,
         hideGreat: false,
         hideFollowPoints: false,
 
-        // cursor info
-        mouseX: 0, // in osu pixel, probably negative or exceeding 512
+        enableHPDrain: true,
+        showFailAnimation: true,
+
+        mobileMode: 'auto',
+        mobileSensitivity: 1.0,
+
+        mouseX: 0,
         mouseY: 0,
-        mouse: null, // return {x,y,r} in osu pixel, probably negative or exceeding 512
+        mouse: null,
         K1down: false,
         K2down: false,
         M1down: false,
         M2down: false,
         down: false,
 
-        finished : false,
+        finished: false,
+        failed: false,
         sample: [{}, {}, {}, {}],
         sampleSet: 1
     };
+    
     window.currentFrameInterval = 16;
     window.game = game;
-    if (window.gamesettings)
+    
+    if (window.gamesettings) {
         window.gamesettings.loadToGame();
+    }
+    
     window.skinReady = false;
     window.soundReady = false;
     window.scriptReady = false;
     game.stage = new PIXI.Container();
     game.cursor = null;
 
-
-    // load skin & game cursor
     PIXI.Loader.shared
     .add('fonts/venera.fnt')
     .add("sprites.json").load(function(loader, resources) {
@@ -87,9 +98,6 @@ function(Osu, _, sound, Playback) {
         Skin = PIXI.Loader.shared.resources["sprites.json"].textures;
     });
 
-
-    // load sounds
-    // load hitsound set
     var sample = [
         'hitsounds/normal-hitnormal.ogg',
         'hitsounds/normal-hitwhistle.ogg',
@@ -107,7 +115,9 @@ function(Osu, _, sound, Playback) {
         'hitsounds/drum-hitclap.ogg',
         'hitsounds/drum-slidertick.ogg',
         'hitsounds/combobreak.ogg',
+        'hitsounds/sectionfail.ogg',
     ];
+    
     sounds.whenLoaded = function(){
         game.sample[1].hitnormal = sounds['hitsounds/normal-hitnormal.ogg'];
         game.sample[1].hitwhistle = sounds['hitsounds/normal-hitwhistle.ogg'];
@@ -125,12 +135,12 @@ function(Osu, _, sound, Playback) {
         game.sample[3].hitclap = sounds['hitsounds/drum-hitclap.ogg'];
         game.sample[3].slidertick = sounds['hitsounds/drum-slidertick.ogg'];
         game.sampleComboBreak = sounds['hitsounds/combobreak.ogg'];
+        game.sampleSectionFail = sounds['hitsounds/sectionfail.ogg'];
         window.soundReady = true;
         document.getElementById("sound-progress").classList.add("finished");
         document.body.classList.add("sound-ready");
     };
     sounds.load(sample);
-
 
     PIXI.Sprite.prototype.bringToFront = function() {
         if (this.parent) {
@@ -140,12 +150,10 @@ function(Osu, _, sound, Playback) {
         }
     }
 
-    // load script done
     window.scriptReady = true;
     document.getElementById("script-progress").classList.add("finished");
     document.body.classList.add("script-ready");
 
-    // load play history
     if (window.localforage) {
         localforage.getItem("playhistory1000", function(err, item) {
             if (!err && item && item.length) {
@@ -154,7 +162,6 @@ function(Osu, _, sound, Playback) {
         })
     }
 
-    // prevent all drag-related events
     window.addEventListener("drag", function(e){e=e||window.event; e.preventDefault(); e.stopPropagation();});
     window.addEventListener("dragend", function(e){e=e||window.event; e.preventDefault(); e.stopPropagation();});
     window.addEventListener("dragenter", function(e){e=e||window.event; e.preventDefault(); e.stopPropagation();});
