@@ -3,18 +3,25 @@ const showToast = (message, type = 'info') => {
         Toastify({
             text: message,
             duration: 3000,
-            gravity: 'top',
+            gravity: 'bottom',
             position: 'right',
             className: type,
-            stopOnFocus: true
+            stopOnFocus: true,
+            style: {
+                background: type === 'success' ? 'var(--success)' : 
+                           type === 'error' ? 'var(--error)' : 
+                           type === 'warning' ? 'var(--warning)' : 
+                           'var(--bg-elevated)'
+            }
         }).showToast();
     }
 };
 
 const startPreview = box => {
     const getVolume = () => {
-        if (!window.gamesettings) return 1;
-        const volume = (window.gamesettings.mastervolume / 100) * (window.gamesettings.musicvolume / 100);
+        if (!window.gamesettings) return 0.5;
+        const settings = window.gamesettings;
+        const volume = (settings.get('masterVolume') || 0.7) * (settings.get('musicVolume') || 1.0);
         return Math.min(1, Math.max(0, volume));
     };
 
@@ -59,7 +66,9 @@ const startPreview = box => {
     const audio = createAudioElement();
     const volume = getVolume();
     
-    audio.play();
+    audio.play().catch(err => {
+        console.error('Audio play failed:', err);
+    });
     fadeVolume(audio, volume);
 
     audio.softstop = () => {
@@ -75,7 +84,7 @@ const startPreview = box => {
 
 const logToServer = async message => {
     try {
-        await fetch(`http://api.osugame.online/log/?msg=${message}`);
+        await fetch(`http://api.osugame.online/log/?msg=${encodeURIComponent(message)}`);
     } catch (err) {
         console.error('Failed to log to server:', err);
     }
@@ -92,25 +101,61 @@ const startDownload = async box => {
     box.classList.add('downloading');
     box.download_starttime = Date.now();
 
-    const url = `https://api.nerinyan.moe/d/${box.sid}`;
+    const url = `https://txy1.sayobot.cn/beatmaps/download/mini/${box.sid}`;
     const statuslines = document.getElementById('statuslines');
 
     if (typeof NProgress !== 'undefined') {
+        NProgress.configure({ 
+            showSpinner: true,
+            trickleSpeed: 200,
+            parent: '#main-page'
+        });
         NProgress.start();
     }
 
     const container = document.createElement('div');
-    const title = document.createElement('div');
+    const titleEl = document.createElement('div');
     const progressBar = document.createElement('progress');
+    const progressText = document.createElement('div');
 
     container.className = 'download-progress';
-    title.className = 'title';
-    title.innerText = box.setdata.title;
+    container.style.cssText = `
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 2px 8px var(--shadow);
+    `;
+    
+    titleEl.className = 'title';
+    titleEl.style.cssText = `
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 0.9375rem;
+    `;
+    titleEl.innerText = box.setdata.title;
+    
     progressBar.max = 1;
     progressBar.value = 0;
+    progressBar.style.cssText = `
+        width: 100%;
+        height: 0.5rem;
+        border-radius: 0.25rem;
+        margin-bottom: 0.25rem;
+    `;
+    
+    progressText.style.cssText = `
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        text-align: right;
+    `;
+    progressText.innerText = '0%';
 
-    container.appendChild(title);
+    container.appendChild(titleEl);
     container.appendChild(progressBar);
+    container.appendChild(progressText);
     statuslines.insertBefore(container, statuslines.children[3]);
 
     showToast(`Downloading: ${box.setdata.title}`, 'info');
@@ -119,22 +164,40 @@ const startDownload = async box => {
         const response = await fetch(url);
         
         if (!response.ok) {
-            throw new Error('Download failed');
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const reader = response.body.getReader();
         const contentLength = +response.headers.get('Content-Length');
+        
+        if (!contentLength) {
+            throw new Error('Content-Length header missing');
+        }
+
         let receivedLength = 0;
         const chunks = [];
+        const startTime = Date.now();
 
         while (true) {
             const { done, value } = await reader.read();
+            
             if (done) break;
 
             chunks.push(value);
             receivedLength += value.length;
             const progress = receivedLength / contentLength;
+            const percentage = Math.round(progress * 100);
+            
             progressBar.value = progress;
+            progressText.innerText = `${percentage}%`;
+            
+            const elapsed = (Date.now() - startTime) / 1000;
+            const speed = receivedLength / elapsed / 1024;
+            const remaining = (contentLength - receivedLength) / (speed * 1024);
+            
+            if (speed > 0 && remaining > 0) {
+                progressText.innerText = `${percentage}% - ${speed.toFixed(1)} KB/s - ${remaining.toFixed(0)}s remaining`;
+            }
             
             if (typeof NProgress !== 'undefined') {
                 NProgress.set(progress);
@@ -143,26 +206,57 @@ const startDownload = async box => {
 
         box.oszblob = new Blob(chunks);
         progressBar.className = 'finished';
+        progressBar.style.cssText += 'background: var(--success);';
+        progressText.innerText = '100% - Complete!';
+        progressText.style.color = 'var(--success)';
         box.classList.remove('downloading');
+        box.classList.add('downloaded');
         
         const downloadTime = Date.now() - box.download_starttime;
-        logToServer(`got ${box.sid} in ${downloadTime}`);
+        const sizeMB = (contentLength / 1024 / 1024).toFixed(2);
+        logToServer(`downloaded ${box.sid} (${sizeMB}MB) in ${downloadTime}ms`);
         
         if (typeof NProgress !== 'undefined') {
             NProgress.done();
         }
         
         showToast(`Download complete: ${box.setdata.title}`, 'success');
+        
+        setTimeout(() => {
+            container.style.opacity = '0';
+            container.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                if (container.parentNode) {
+                    container.parentNode.removeChild(container);
+                }
+            }, 500);
+        }, 3000);
+        
     } catch (err) {
         console.error('Download failed:', err);
         box.downloading = false;
         box.classList.remove('downloading');
-        logToServer(`fail ${box.sid}`);
+        
+        progressBar.style.cssText += 'background: var(--error);';
+        progressText.innerText = 'Download failed!';
+        progressText.style.color = 'var(--error)';
+        
+        logToServer(`failed ${box.sid}: ${err.message}`);
         
         if (typeof NProgress !== 'undefined') {
             NProgress.done();
         }
         
-        showToast('Beatmap download failed. Please retry later.', 'error');
+        showToast(`Download failed: ${err.message}. Please try again.`, 'error');
+        
+        setTimeout(() => {
+            if (container.parentNode) {
+                container.parentNode.removeChild(container);
+            }
+        }, 5000);
     }
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { startDownload, startPreview, showToast };
+}
