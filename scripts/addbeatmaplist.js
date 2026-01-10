@@ -1,3 +1,16 @@
+const showToast = (message, type = 'info') => {
+    if (typeof Toastify !== 'undefined') {
+        Toastify({
+            text: message,
+            duration: 3000,
+            gravity: 'bottom',
+            position: 'right',
+            className: type,
+            stopOnFocus: true
+        }).showToast();
+    }
+};
+
 const getStarName = star => {
     if (star == null || star === undefined) return "unknown";
     if (star < 2) return "easy";
@@ -8,63 +21,48 @@ const getStarName = star => {
     return "expert-plus";
 };
 
-const createStarRow = star => {
-    const row = document.createElement("div");
-    row.className = "star-row";
+const createStarDisplay = star => {
+    const container = document.createElement("div");
+    container.className = "star-display";
+    container.style.cssText = "display: flex; align-items: center; gap: 0.25rem;";
     
-    for (let i = 0; i < 10; i++) {
-        const container = document.createElement("div");
-        container.className = "imgcontainer";
-        const img = document.createElement("img");
-        container.appendChild(img);
-        row.appendChild(container);
-        img.src = "star.png";
-        
-        const value = Math.min(Math.max(star - i, 0), 1);
-        const size = 8 + value * 10;
-        const pad = (1 - value) * 5;
-        
-        img.style.cssText = `
-            width: ${size}px;
-            bottom: ${pad}px;
-            left: ${pad}px;
-            ${value === 0 ? 'opacity: 0.4;' : ''}
-        `;
-    }
+    const icon = document.createElement("img");
+    icon.src = "star.png";
+    icon.style.cssText = "width: 1rem; height: 1rem; filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.5));";
     
-    return row;
+    const text = document.createElement("span");
+    text.style.cssText = "font-size: 0.875rem; font-weight: 600; color: var(--text-primary);";
+    text.innerText = star != null ? star.toFixed(2) : "N/A";
+    
+    container.appendChild(icon);
+    container.appendChild(text);
+    return container;
 };
 
 const createDifficultyList = (boxClicked, event) => {
     if (window.currentDifficultyList) {
-        window.removeEventListener("click", window.currentDifficultyList.clickListener);
-        window.currentDifficultyList.parentElement.removeChild(window.currentDifficultyList);
+        window.currentDifficultyList.remove();
         window.currentDifficultyList = null;
     }
 
     event.stopPropagation();
 
-    const rect = boxClicked.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
     const difficultyBox = document.createElement("div");
     window.currentDifficultyList = difficultyBox;
     difficultyBox.className = "difficulty-box";
-    difficultyBox.style.left = `${x}px`;
-    difficultyBox.style.top = `${y}px`;
     boxClicked.appendChild(difficultyBox);
 
-    const closeDifficultyList = () => {
-        if (difficultyBox.parentElement) {
-            difficultyBox.parentElement.removeChild(difficultyBox);
+    const closeDifficultyList = (e) => {
+        if (!difficultyBox.contains(e.target) && e.target !== boxClicked) {
+            difficultyBox.remove();
+            window.currentDifficultyList = null;
+            document.removeEventListener('click', closeDifficultyList, false);
         }
-        window.currentDifficultyList = null;
-        window.removeEventListener('click', closeDifficultyList, false);
     };
 
-    window.addEventListener("click", closeDifficultyList, false);
-    difficultyBox.clickListener = closeDifficultyList;
+    setTimeout(() => {
+        document.addEventListener("click", closeDifficultyList, false);
+    }, 100);
 
     for (const difficulty of boxClicked.data) {
         const difficultyItem = document.createElement("div");
@@ -92,26 +90,17 @@ const createDifficultyList = (boxClicked, event) => {
         version.innerText = difficulty.version;
         mapper.innerText = `mapped by ${difficulty.creator}`;
 
-        difficultyItem.appendChild(createStarRow(difficulty.star));
+        difficultyItem.appendChild(createStarDisplay(difficulty.star));
 
         difficultyItem.onclick = function(e) {
             e.stopPropagation();
             
-            if (!window.scriptReady || !window.soundReady || !window.skinReady) {
-                if (typeof showToast !== 'undefined') {
-                    showToast('Game resources are still loading...', 'warning');
-                }
+            if (!boxClicked.oszblob) {
+                showToast('Beatmap is still downloading...', 'warning');
                 return;
             }
             
-            if (!this.parentElement.parentElement.oszblob) {
-                if (typeof showToast !== 'undefined') {
-                    showToast('Beatmap is still downloading...', 'warning');
-                }
-                return;
-            }
-            
-            launchGame(this.parentElement.parentElement.oszblob, this.data.bid, this.data.version);
+            launchGame(boxClicked.oszblob, this.data.bid, this.data.version);
         };
     }
 
@@ -144,15 +133,10 @@ const BeatmapManager = {
             
             try {
                 await localforage.setItem("likedsidset", window.liked_sid_set);
-                icon.classList.add("hint-liked");
-                if (typeof showToast !== 'undefined') {
-                    showToast('Added to favorites', 'success');
-                }
+                showToast('Added to favorites', 'success');
             } catch (err) {
                 console.error("Error saving liked beatmap list:", err);
-                if (typeof showToast !== 'undefined') {
-                    showToast('Failed to save favorite', 'error');
-                }
+                showToast('Failed to save favorite', 'error');
             }
             
             icon.onclick = box.undoLike;
@@ -166,9 +150,7 @@ const BeatmapManager = {
             
             try {
                 await localforage.setItem("likedsidset", window.liked_sid_set);
-                if (typeof showToast !== 'undefined') {
-                    showToast('Removed from favorites', 'info');
-                }
+                showToast('Removed from favorites', 'info');
             } catch (err) {
                 console.error("Error saving liked beatmap list:", err);
             }
@@ -176,7 +158,6 @@ const BeatmapManager = {
             icon.onclick = box.like;
             icon.classList.remove("icon-heart");
             icon.classList.add("icon-heart-empty");
-            icon.classList.remove("hint-liked");
         };
 
         if (window.liked_sid_set) {
@@ -359,9 +340,7 @@ const addBeatmapList = async (listUrl, list, filter, maxSize) => {
         }
     } catch (err) {
         console.error("Failed to load beatmap list:", err);
-        if (typeof showToast !== 'undefined') {
-            showToast('Failed to load beatmaps', 'error');
-        }
+        showToast('Failed to load beatmaps', 'error');
     }
 };
 
@@ -373,11 +352,7 @@ const addBeatmapSid = async (sid, list) => {
         const res = await response.json();
 
         if (res.status === -1) {
-            if (typeof showToast !== 'undefined') {
-                showToast('Beatmap not found with specified sid', 'error');
-            } else {
-                alert("Beatmap not found with specified sid");
-            }
+            showToast('Beatmap not found with specified sid', 'error');
             return;
         }
 
@@ -396,8 +371,6 @@ const addBeatmapSid = async (sid, list) => {
         }
     } catch (err) {
         console.error("Failed to load beatmap:", err);
-        if (typeof showToast !== 'undefined') {
-            showToast('Failed to load beatmap', 'error');
-        }
+        showToast('Failed to load beatmap', 'error');
     }
 };
