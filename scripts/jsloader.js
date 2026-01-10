@@ -10,20 +10,24 @@ function loadScript(url, callback, aux) {
     script.src = url;
 }
 
+window.scriptReady = false;
+window.skinReady = false;
+window.soundReady = false;
+
 window.beatmaplistLoadedCallback = function () {
     window.setTimeout(function(){
-        loadScript("scripts/lib/zip.js", function(){
-            window.zip.workerScriptsPath = 'scripts/lib/';
-            loadScript("scripts/lib/zip-fs.js", checkdep);
-        });
-        loadScript("scripts/lib/pixi.min.js", checkdep);
-        loadScript("scripts/lib/mp3parse.min.js", checkdep);
-        loadScript("scripts/lib/localforage.min.js", checkdep);
+        console.log('Loading game dependencies...');
+        
+        let loadedCount = 0;
+        const totalDeps = 4;
         
         function checkdep() {
-            if (!window.aaaaa) window.aaaaa = 0;
-            window.aaaaa += 1;
-            if (window.aaaaa == 4) {
+            loadedCount++;
+            console.log(`Loaded dependency ${loadedCount}/${totalDeps}`);
+            
+            if (loadedCount === totalDeps) {
+                console.log('All dependencies loaded, loading main game scripts...');
+                
                 loadScript("scripts/lib/require.js", function() {
                     require.config({
                         paths: {
@@ -35,6 +39,12 @@ window.beatmaplistLoadedCallback = function () {
                                 exports: "_"
                             }
                         }
+                    });
+                    
+                    loadScript("scripts/initgame.js", function() {
+                        console.log('Game scripts loaded');
+                        window.scriptReady = true;
+                        updateLoadingStatus();
                     });
                 }, {"data-main":"scripts/initgame"});
                 
@@ -64,5 +74,61 @@ window.beatmaplistLoadedCallback = function () {
                 }
             }
         }
-    }, 0);
+        
+        loadScript("scripts/lib/zip.js", function(){
+            window.zip.workerScriptsPath = 'scripts/lib/';
+            loadScript("scripts/lib/zip-fs.js", checkdep);
+        });
+        loadScript("scripts/lib/pixi.min.js", checkdep);
+        loadScript("scripts/lib/mp3parse.min.js", checkdep);
+        loadScript("scripts/lib/localforage.min.js", checkdep);
+        
+        updateLoadingStatus();
+        
+    }, 100);
 }
+
+function updateLoadingStatus() {
+    const scriptProgress = document.getElementById('script-progress');
+    const skinProgress = document.getElementById('skin-progress');
+    const soundProgress = document.getElementById('sound-progress');
+    
+    if (window.scriptReady && scriptProgress) {
+        const spinner = scriptProgress.querySelector('.lds-dual-ring');
+        if (spinner) {
+            spinner.classList.add('finished');
+        }
+        scriptProgress.style.opacity = '0.7';
+    }
+    
+    if (window.skinReady && skinProgress) {
+        const spinner = skinProgress.querySelector('.lds-dual-ring');
+        if (spinner) {
+            spinner.classList.add('finished');
+        }
+        skinProgress.style.opacity = '0.7';
+    }
+    
+    if (window.soundReady && soundProgress) {
+        const spinner = soundProgress.querySelector('.lds-dual-ring');
+        if (spinner) {
+            spinner.classList.add('finished');
+        }
+        soundProgress.style.opacity = '0.7';
+    }
+}
+
+window.loadSkinAndSounds = function() {
+    if (typeof window.sound !== 'undefined') {
+        window.sound.load(() => {
+            console.log('Sounds loaded');
+            window.soundReady = true;
+            updateLoadingStatus();
+        });
+    }
+    
+    if (typeof window.skin !== 'undefined') {
+        window.skinReady = true;
+        updateLoadingStatus();
+    }
+};
