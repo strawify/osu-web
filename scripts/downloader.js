@@ -92,7 +92,7 @@ const startDownload = async box => {
     box.classList.add('downloading');
     box.download_starttime = Date.now();
 
-    const url = `https://txy1.sayobot.cn/beatmaps/download/mini/${box.sid}`;
+    const url = `https://api.nerinyan.moe/d/${box.sid}`;
     const statuslines = document.getElementById('statuslines');
 
     if (typeof NProgress !== 'undefined') {
