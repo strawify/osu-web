@@ -1,310 +1,592 @@
 <!doctype html>
 <html>
-    <head>
-        <meta charset="utf-8" />
-        <title>osu!web</title>
-        <link rel="icon" href="favicon.png">
-        <link rel="stylesheet" href="style/picnic.min.css">
-        <link rel="stylesheet" type="text/css" href="style/main.css">
-        <link rel="stylesheet" type="text/css" href="style/font.css">
-        <script src="scripts/settings.js"></script>
-    </head>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>osu!web</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="stylesheet" type="text/css" href="style/main.css">
+    <link rel="stylesheet" type="text/css" href="style/font.css">
+    <link rel="icon" href="favicon.png">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="scripts/settings.js"></script>
+    <style>
+        .settings-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem clamp(1rem, 5vw, 2rem);
+        }
 
-    <body>
-        <nav id="main-nav">
-            <div class="nav-link">
-                <a href="index.html" class="brand">osu!web</a>
-                <a href="new.html" class="pseudo button">Latest</a>
-                <a href="hot.html" class="pseudo button">Popular</a>
-                <a href="genre.html" class="pseudo button">Categories</a>
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .settings-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px var(--shadow);
+        }
+
+        .settings-card h3 {
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 1.125rem;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            gap: 1rem;
+        }
+
+        .setting-row:not(:last-child) {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .setting-label {
+            flex: 1;
+            font-size: 0.9375rem;
+            color: var(--text-primary);
+        }
+
+        .setting-description {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .setting-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        input[type="range"] {
+            width: 10rem;
+            height: 0.375rem;
+            background: var(--bg-tertiary);
+            border-radius: 0.1875rem;
+            outline: none;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 1.125rem;
+            height: 1.125rem;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .range-value {
+            min-width: 3rem;
+            text-align: right;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .key-button {
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+            font-weight: 500;
+            font-family: inherit;
+            min-width: 5rem;
+        }
+
+        .key-button:hover {
+            background: var(--bg-elevated);
+            border-color: var(--accent-secondary);
+        }
+
+        .key-button.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        .reset-section {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            text-align: center;
+        }
+
+        .reset-button {
+            padding: 0.75rem 2rem;
+            background: var(--error);
+            color: #ffffff;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+        }
+
+        .reset-button:hover {
+            background: #cc0000;
+            transform: translateY(-2px);
+        }
+
+        .mod-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+
+        .mod-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 2px solid transparent;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .mod-item:hover {
+            border-color: var(--border-color);
+            background: var(--bg-elevated);
+        }
+
+        .mod-item.active {
+            border-color: var(--accent-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .mod-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .mod-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .mod-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+            margin-top: 0.25rem;
+        }
+
+        select {
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.875rem;
+        }
+
+        @media screen and (max-width: 768px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            input[type="range"] {
+                width: 8rem;
+            }
+
+            .mod-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav id="main-nav">
+        <div class="nav-link">
+            <a href="index.html" class="brand">osu!web</a>
+            <a href="new.html" class="pseudo button">Latest</a>
+            <a href="hot.html" class="pseudo button">Popular</a>
+            <a href="genre.html" class="pseudo button">Categories</a>
+        </div>
+        <div class="nav-search">
+            <form action="search.html">
+                <input type="text" name="q" placeholder="Beatmap keywords or sid"/>
+                <button type="submit" class="search-button">🔍</button>
+            </form>
+        </div>
+        <div class="nav-tool">
+            <a href="local.html" class="pseudo button">Favorites</a>
+            <a href="faq.html" class="pseudo button">FAQ</a>
+            <a href="settings.html" class="pseudo button active">Settings</a>
+            <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">Fullscreen</a>
+        </div>
+    </nav>
+
+    <div class="main-page">
+        <div class="settings-container">
+            <h1 style="margin-bottom: 2rem;">Settings</h1>
+
+            <div class="settings-grid">
+                <!-- Display Settings -->
+                <div class="settings-card">
+                    <h3>🎨 Display</h3>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Background Dim
+                            <div class="setting-description">Darken background during gameplay</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="dim-range" type="range" min="0" max="100" value="70">
+                            <span class="range-value" id="dim-value">70%</span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Background Blur
+                            <div class="setting-description">Blur background image</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="blur-range" type="range" min="0" max="10" step="0.1" value="0">
+                            <span class="range-value" id="blur-value">0</span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Cursor Size
+                            <div class="setting-description">Adjust in-game cursor size</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="cursorsize-range" type="range" min="0.5" max="2.0" step="0.01" value="1.0">
+                            <span class="range-value" id="cursorsize-value">1.0x</span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Hardware Cursor
+                            <div class="setting-description">Reduce cursor latency</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="showhwmouse-check" type="checkbox"><span></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Slider Snaking In</div>
+                        <div class="setting-control">
+                            <input id="snakein-check" type="checkbox" checked><span></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Slider Snaking Out</div>
+                        <div class="setting-control">
+                            <input id="snakeout-check" type="checkbox" checked><span></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Auto Fullscreen</div>
+                        <div class="setting-control">
+                            <input id="autofullscreen-check" type="checkbox"><span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audio Settings -->
+                <div class="settings-card">
+                    <h3>🔊 Audio</h3>
+                    <div class="setting-row">
+                        <div class="setting-label">Master Volume</div>
+                        <div class="setting-control">
+                            <input id="mastervolume-range" type="range" min="0" max="100" value="70">
+                            <span class="range-value" id="mastervolume-value">70%</span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Effect Volume</div>
+                        <div class="setting-control">
+                            <input id="effectvolume-range" type="range" min="0" max="100" value="100">
+                            <span class="range-value" id="effectvolume-value">100%</span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Music Volume</div>
+                        <div class="setting-control">
+                            <input id="musicvolume-range" type="range" min="0" max="100" value="100">
+                            <span class="range-value" id="musicvolume-value">100%</span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Audio Offset
+                            <div class="setting-description">Adjust timing (±50ms)</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="audiooffset-range" type="range" min="-50" max="50" value="0">
+                            <span class="range-value" id="audiooffset-value">0ms</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Settings -->
+                <div class="settings-card">
+                    <h3>🎮 Input</h3>
+                    <div class="setting-row">
+                        <div class="setting-label">Disable Mouse Wheel</div>
+                        <div class="setting-control">
+                            <input id="disable-wheel-check" type="checkbox"><span></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Disable Mouse Buttons</div>
+                        <div class="setting-control">
+                            <input id="disable-button-check" type="checkbox"><span></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Left Key</div>
+                        <div class="setting-control">
+                            <button id="lbutton1select" class="key-button">Z</button>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Right Key</div>
+                        <div class="setting-control">
+                            <button id="rbutton1select" class="key-button">X</button>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Pause Key</div>
+                        <div class="setting-control">
+                            <button id="pausebuttonselect" class="key-button">ESC</button>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Skip Key</div>
+                        <div class="setting-control">
+                            <button id="skipbuttonselect" class="key-button">CTRL</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gameplay Settings -->
+                <div class="settings-card">
+                    <h3>🎯 Gameplay</h3>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Enable HP Drain
+                            <div class="setting-description">Lose HP on misses</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="hpdrain-check" type="checkbox" checked><span></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Fail Animation
+                            <div class="setting-description">Show death animation</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="failanim-check" type="checkbox" checked><span></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Hide Combo Numbers</div>
+                        <div class="setting-control">
+                            <input id="hidenumbers-check" type="checkbox"><span></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Hide "Great" Text</div>
+                        <div class="setting-control">
+                            <input id="hidegreat-check" type="checkbox"><span></span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">Hide Follow Points</div>
+                        <div class="setting-control">
+                            <input id="hidefollowpoints-check" type="checkbox"><span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Settings -->
+                <div class="settings-card">
+                    <h3>📱 Mobile</h3>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Control Mode
+                            <div class="setting-description">How to play on mobile</div>
+                        </div>
+                        <div class="setting-control">
+                            <select id="mobile-mode-select">
+                                <option value="auto">Auto Detect</option>
+                                <option value="tap">Tap to Click</option>
+                                <option value="drag">Drag to Follow</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-label">
+                            Touch Sensitivity
+                            <div class="setting-description">Adjust touch response</div>
+                        </div>
+                        <div class="setting-control">
+                            <input id="mobile-sensitivity-range" type="range" min="0.5" max="2.0" step="0.1" value="1.0">
+                            <span class="range-value" id="mobile-sensitivity-value">1.0x</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="nav-search">
-                <form action="search.html">
-                    <input type="text" name="q" placeholder="Beatmap keywords or sid"/>
-                    <input type="image" class="search-button" src="research.svg">
-                </form>
+
+            <!-- Mods Section -->
+            <div class="settings-card">
+                <h3>⚡ Game Modifiers</h3>
+                <div class="mod-grid" id="mod-grid">
+                    <!-- Mods will be dynamically added -->
+                </div>
             </div>
-            <div class="nav-tool">
-                <a href="local.html" class="pseudo button">Favorites</a>
-                <a href="faq.html" class="pseudo button">FAQ</a>
-                <a href="settings.html" class="pseudo button active">Settings</a>
-                <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">Fullscreen</a>
+
+            <!-- Custom Speed -->
+            <div class="settings-card" style="margin-top: 1.5rem;">
+                <h3>🎵 Custom Speed</h3>
+                <div class="setting-row">
+                    <div class="setting-label">
+                        Enable Custom Speed
+                        <div class="setting-description">Override speed mods</div>
+                    </div>
+                    <div class="setting-control">
+                        <input id="customspeed-check" type="checkbox"><span></span>
+                    </div>
+                </div>
+                <div class="setting-row">
+                    <div class="setting-label">
+                        Speed Multiplier
+                        <div class="setting-description">0.5x to 2.0x</div>
+                    </div>
+                    <div class="setting-control">
+                        <input id="customspeed-range" type="range" min="0.5" max="2.0" step="0.05" value="1.0">
+                        <span class="range-value" id="customspeed-value">1.0x</span>
+                    </div>
+                </div>
             </div>
-        </nav>
-        <div class="main-page" id="main-page">
-            <div class="panel">
-                <table class="holder" id="settings-panel">
-                    <tr>
-                        <td><h3>Display Settings</h3></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Background Dim</div>
-                            <div class="option-control">
-                                <input id="dim-range" class="slider" type="range" min="0" max="100" value="0">
-                                <div class="range-indicator" id="dim-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Background Blur</div>
-                            <div class="option-control">
-                                <input id="blur-range" class="slider" type="range" min="0" max="8" value="0">
-                                <div class="range-indicator" id="blur-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Cursor Size</div>
-                            <div class="option-control">
-                                <input id="cursorsize-range" class="slider" type="range" min="0.5" max="2.0" step="0.01" value="0.5">
-                                <div class="range-indicator" id="cursorsize-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Reduces cursor latency but may flicker or not display on some systems">
-                            <div class="option-name">Enable Hardware Cursor</div>
-                            <div class="option-control">
-                                <input id="showhwmouse-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Slider Snaking In</div>
-                            <div class="option-control">
-                                <input id="snakein-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Slider Snaking Out</div>
-                            <div class="option-control">
-                                <input id="snakeout-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Auto Fullscreen on Start</div>
-                            <div class="option-control">
-                                <input id="autofullscreen-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Use System Resolution</div>
-                            <div class="option-control">
-                                <input id="sysdpi-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Resolution</div>
-                            <div class="option-control">
-                                <input id="dpi-range" class="slider" type="range" min="0.5" max="2.0" value="1.0" step="0.05">
-                                <div class="range-indicator" id="dpi-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
 
-                    <tr>
-                        <td><h3>Input Settings</h3></td>
-                    </tr>
-                    <tr>
-                        <td title="To avoid accidentally changing volume">
-                            <div class="option-name">Disable Mouse Wheel in Game</div>
-                            <div class="option-control">
-                                <input id="disable-wheel-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="To avoid accidentally clicking objects">
-                            <div class="option-name">Disable Mouse Buttons in Game</div>
-                            <div class="option-control">
-                                <input id="disable-button-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Left Key</div>
-                            <div class="option-control">
-                                <input id="lbutton1select" type="button" value="oops"/>
-                                <input type="button" value="M1"/>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Right Key</div>
-                            <div class="option-control">
-                                <input id="rbutton1select" type="button" value="oops"/>
-                                <input type="button" value="M2"/>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Pause Key</div>
-                            <div class="option-control">
-                                <input id="pausebuttonselect" type="button" value="oops"/>
-                                <input id="pausebutton2select" type="button" value="oops"/>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Skip Intro</div>
-                            <div class="option-control">
-                                <input id="skipbuttonselect" type="button" value="oops"/>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td><h3>Audio Settings</h3></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Master Volume</div>
-                            <div class="option-control">
-                                <input id="mastervolume-range" class="slider" type="range" min="0" max="100" value="0">
-                                <div class="range-indicator" id="mastervolume-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Effect Volume</div>
-                            <div class="option-control">
-                                <input id="effectvolume-range" class="slider" type="range" min="0" max="100" value="0">
-                                <div class="range-indicator" id="effectvolume-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Music Volume</div>
-                            <div class="option-control">
-                                <input id="musicvolume-range" class="slider" type="range" min="0" max="100" value="0">
-                                <div class="range-indicator" id="musicvolume-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr title="Not recommended! Only use if you're certain of significant latency">
-                        <td>
-                            <div class="option-name">Audio Offset</div>
-                            <div class="option-control">
-                                <input id="audiooffset-range" class="slider" type="range" min="-50" max="50" value="-50">
-                                <div class="range-indicator" id="audiooffset-range-indicator" hidden></div>
-                            </div>
-                            <div style="font-size: 0.8em; color: #999; margin-top: 2.2em;">Not recommended! If using, disable hitsounds. Positive values delay hit timing relative to music. Visit <a style="color: #8bc" href="https://bemuse.ninja/?mode=sync">bemuse sync</a> to measure keyboard latency.</div>
-                        </td>
-                    </tr>
-                    <tr hidden>
-                        <td>
-                            <div class="option-name disabled">Enable Beatmap Hitsounds</div>
-                            <div class="option-control">
-                                <input id="beatmap-hitsound-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td><h3>Mods</h3></td>
-                    </tr>
-                    <tr>
-                        <td title="This doesn't make things easier!">
-                            <div class="option-name">Easy</div>
-                            <div class="option-control">
-                                <input id="easy-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Everything gets slower...">
-                            <div class="option-name">Daycore</div>
-                            <div class="option-control">
-                                <input id="daycore-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Everything gets a bit harder...">
-                            <div class="option-name">Hard Rock</div>
-                            <div class="option-control">
-                                <input id="hardrock-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Play with no approach circles and fading circles/sliders">
-                            <div class="option-name">Hidden</div>
-                            <div class="option-control">
-                                <input id="hidden-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Everything gets faster...">
-                            <div class="option-name">Nightcore</div>
-                            <div class="option-control">
-                                <input id="nightcore-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Watch a (probably) perfect automated play">
-                            <div class="option-name">Autoplay</div>
-                            <div class="option-control">
-                                <input id="autoplay-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <td><h3>Skin Settings</h3></td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Hide Hit Object Numbers</div>
-                            <div class="option-control">
-                                <input id="hidenumbers-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Hide Great Hit Indicator</div>
-                            <div class="option-control">
-                                <input id="hidegreat-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">Hide Follow Points</div>
-                            <div class="option-control">
-                                <input id="hidefollowpoints-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <br/>
-                            <input id="restoredefault-btn" type="button" class="warnbtn" value="Restore All Defaults"/>
-                        </td>
-                    </tr>
-                </table>
+            <!-- Reset Section -->
+            <div class="reset-section">
+                <h3 style="margin-bottom: 1rem; border: none;">⚠️ Danger Zone</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                    This will reset all settings to their default values.
+                </p>
+                <button id="restoredefault-btn" class="reset-button">
+                    Reset All Settings
+                </button>
             </div>
         </div>
-    </body>
+    </div>
+
+    <script>
+        // Initialize mod cards
+        const mods = [
+            { id: 'easy', name: 'Easy', icon: '😊', desc: '-AR -CS -OD -HP' },
+            { id: 'nofail', name: 'No Fail', icon: '💚', desc: "Can't fail" },
+            { id: 'halftime', name: 'Half Time', icon: '🐌', desc: '0.75x speed' },
+            { id: 'hardrock', name: 'Hard Rock', icon: '🗿', desc: '+AR +CS +OD +HP' },
+            { id: 'suddendeath', name: 'Sudden Death', icon: '💀', desc: 'One miss = fail' },
+            { id: 'doubletime', name: 'Double Time', icon: '⚡', desc: '1.5x speed' },
+            { id: 'hidden', name: 'Hidden', icon: '👁️', desc: 'Fading circles' },
+            { id: 'nightcore', name: 'Nightcore', icon: '🌙', desc: '1.5x + pitch' },
+            { id: 'daycore', name: 'Daycore', icon: '☀️', desc: '0.75x - pitch' },
+            { id: 'relax', name: 'Relax', icon: '😌', desc: 'No clicking' },
+            { id: 'autopilot', name: 'Autopilot', icon: '✈️', desc: 'Auto aim' },
+            { id: 'autoplay', name: 'Autoplay', icon: '🤖', desc: 'Watch AI' },
+            { id: 'mirror', name: 'Mirror', icon: '🪞', desc: 'Flip horizontal' }
+        ];
+
+        const modGrid = document.getElementById('mod-grid');
+        mods.forEach(mod => {
+            const modEl = document.createElement('div');
+            modEl.className = 'mod-item';
+            modEl.innerHTML = `
+                <div class="mod-icon">${mod.icon}</div>
+                <div class="mod-name">${mod.name}</div>
+                <div class="mod-desc">${mod.desc}</div>
+            `;
+            
+            const checkbox = document.getElementById(`${mod.id}-check`);
+            if (checkbox) {
+                modEl.addEventListener('click', () => {
+                    checkbox.checked = !checkbox.checked;
+                    checkbox.dispatchEvent(new Event('change'));
+                    modEl.classList.toggle('active', checkbox.checked);
+                });
+                
+                if (checkbox.checked) {
+                    modEl.classList.add('active');
+                }
+                
+                checkbox.addEventListener('change', () => {
+                    modEl.classList.toggle('active', checkbox.checked);
+                });
+            }
+            
+            modGrid.appendChild(modEl);
+        });
+
+        // Update range value displays
+        const updateRangeDisplay = (rangeId, valueId, suffix = '') => {
+            const range = document.getElementById(rangeId);
+            const value = document.getElementById(valueId);
+            if (!range || !value) return;
+            
+            const update = () => {
+                let displayValue = range.value;
+                if (rangeId.includes('offset')) {
+                    displayValue = (displayValue > 0 ? '+' : '') + displayValue;
+                }
+                value.textContent = displayValue + suffix;
+            };
+            
+            range.addEventListener('input', update);
+            update();
+        };
+
+        updateRangeDisplay('dim-range', 'dim-value', '%');
+        updateRangeDisplay('blur-range', 'blur-value');
+        updateRangeDisplay('cursorsize-range', 'cursorsize-value', 'x');
+        updateRangeDisplay('mastervolume-range', 'mastervolume-value', '%');
+        updateRangeDisplay('effectvolume-range', 'effectvolume-value', '%');
+        updateRangeDisplay('musicvolume-range', 'musicvolume-value', '%');
+        updateRangeDisplay('audiooffset-range', 'audiooffset-value', 'ms');
+        updateRangeDisplay('customspeed-range', 'customspeed-value', 'x');
+        updateRangeDisplay('mobile-sensitivity-range', 'mobile-sensitivity-value', 'x');
+    </script>
+</body>
 </html>
