@@ -1,6 +1,8 @@
 function loadScript(url, callback, aux) {
     let script = document.createElement("script");
-    document.head.appendChild(script);
+    script.onerror = function() {
+        console.error("Failed to load script:", url);
+    };
     if (callback) script.onload = callback;
     if (aux) {
         for (let key in aux) {
@@ -8,6 +10,7 @@ function loadScript(url, callback, aux) {
         }
     }
     script.src = url;
+    document.head.appendChild(script);
 }
 
 window.scriptReady = false;
@@ -25,32 +28,65 @@ window.beatmaplistLoadedCallback = function () {
         console.log(`Loaded dependency ${loadedCount}/${totalDeps}`);
         
         if (loadedCount === totalDeps) {
-            console.log('All dependencies loaded, loading main game scripts...');
+            console.log('All dependencies loaded, setting up sound system...');
             
+            window.sounds = {
+                load: function(files) {
+                    console.log('Loading sounds:', files);
+                    let loaded = 0;
+                    const total = files.length;
+                    
+                    if (typeof createjs === 'undefined' || !createjs.Sound) {
+                        console.error('CreateJS Sound not available');
+                        if (this.whenLoaded) this.whenLoaded();
+                        return;
+                    }
+                    
+                    createjs.Sound.alternateExtensions = ["mp3", "ogg"];
+                    
+                    createjs.Sound.on("fileload", (event) => {
+                        loaded++;
+                        const soundId = event.src;
+                        this[soundId] = {
+                            play: function() {
+                                createjs.Sound.play(soundId, {
+                                    volume: this.volume || 1
+                                });
+                            },
+                            volume: 1
+                        };
+                        
+                        if (loaded === total) {
+                            console.log('All sounds loaded');
+                            if (this.whenLoaded) this.whenLoaded();
+                        }
+                    });
+                    
+                    files.forEach(file => {
+                        createjs.Sound.registerSound(file, file);
+                    });
+                },
+                whenLoaded: null
+            };
+            
+            console.log('Loading RequireJS...');
             loadScript("scripts/lib/require.js", function() {
                 require.config({
+                    baseUrl: 'scripts',
                     paths: {
-                        underscore: 'scripts/lib/underscore',
-                        sound: 'scripts/lib/sound'
+                        underscore: 'lib/underscore',
+                        sound: 'lib/sound.min'
                     },
                     shim: {
                         "underscore": {
                             exports: "_"
                         }
-                    }
+                    },
+                    waitSeconds: 15
                 });
                 
                 console.log('RequireJS configured, loading game modules...');
-                
-                loadScript("scripts/initgame.js", function() {
-                    console.log('Game scripts loaded');
-                    window.scriptReady = true;
-                    updateLoadingStatus();
-                    
-                    if (window.loadSkinAndSounds) {
-                        window.loadSkinAndSounds();
-                    }
-                });
+                loadScript("scripts/initgame.js");
             }, {"data-main":"scripts/initgame"});
             
             if (window.localforage) {
@@ -68,7 +104,7 @@ window.beatmaplistLoadedCallback = function () {
                             window.liked_sid_set_callbacks = [];
                         }
                     } else {
-                        console.error("failed loading liked list");
+                        console.error("Failed loading liked list");
                         window.liked_sid_set = new Set();
                         window.liked_sid_set_callbacks = [];
                     }
@@ -86,68 +122,5 @@ window.beatmaplistLoadedCallback = function () {
     });
     loadScript("scripts/lib/pixi.min.js", checkdep);
     loadScript("scripts/lib/mp3parse.min.js", checkdep);
-    loadScript("scripts/lib/localforage.min.js", checkdep);
-    
-    updateLoadingStatus();
-}
-
-function updateLoadingStatus() {
-    const scriptProgress = document.getElementById('script-progress');
-    const skinProgress = document.getElementById('skin-progress');
-    const soundProgress = document.getElementById('sound-progress');
-    
-    if (window.scriptReady && scriptProgress) {
-        const spinner = scriptProgress.querySelector('.lds-dual-ring');
-        if (spinner) {
-            spinner.classList.add('finished');
-        }
-        scriptProgress.style.opacity = '0.7';
-    }
-    
-    if (window.skinReady && skinProgress) {
-        const spinner = skinProgress.querySelector('.lds-dual-ring');
-        if (spinner) {
-            spinner.classList.add('finished');
-        }
-        skinProgress.style.opacity = '0.7';
-    }
-    
-    if (window.soundReady && soundProgress) {
-        const spinner = soundProgress.querySelector('.lds-dual-ring');
-        if (spinner) {
-            spinner.classList.add('finished');
-        }
-        soundProgress.style.opacity = '0.7';
-    }
-}
-
-window.loadSkinAndSounds = function() {
-    console.log('loadSkinAndSounds called');
-    
-    if (typeof window.sound !== 'undefined') {
-        console.log('Loading sounds...');
-        window.sound.load(() => {
-            console.log('Sounds loaded');
-            window.soundReady = true;
-            updateLoadingStatus();
-        });
-    } else {
-        console.log('Sound module not available yet');
-        setTimeout(window.loadSkinAndSounds, 100);
-    }
-    
-    if (typeof window.skin !== 'undefined') {
-        window.skinReady = true;
-        updateLoadingStatus();
-    }
+    loadScript("scripts/lib/sound.min.js", checkdep);
 };
-
-window.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, waiting for beatmaps...');
-    
-    setTimeout(function() {
-        if (window.beatmaplistLoadedCallback) {
-            window.beatmaplistLoadedCallback();
-        }
-    }, 1000);
-});
