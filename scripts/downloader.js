@@ -41,6 +41,7 @@ const startPreview = box => {
         source.type = 'audio/mpeg';
         audio.appendChild(source);
         audio.volume = 0;
+        audio.crossOrigin = 'anonymous';
         document.body.appendChild(audio);
         return audio;
     };
@@ -88,7 +89,7 @@ const logToServer = async message => {
     try {
         await fetch(`https://api.osugame.online/log/?msg=${encodeURIComponent(message)}`);
     } catch (err) {
-        console.error('Failed to log to server:', err);
+        console.log('Download log:', message);
     }
 };
 
