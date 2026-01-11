@@ -169,7 +169,7 @@ function(Osu, setPlayerActions, SliderMesh, ScoreOverlay, VolumeMenu, LoadingMen
         self.MehTime = 200 - 10 * this.OD;
         self.GoodTime = 140 - 8 * this.OD;
         self.GreatTime = 80 - 6 * this.OD;
-        self.errorMeter = new ErrorMeterOverlay({width: game.window.innerWidth, height: game.window.innerHeight}, this.GreatTime, this.GoodTime, this.MehTime);
+        self.errorMeter = new ErrorMeterOverlay({width: game.window.innerWidth, height: window.innerHeight}, this.GreatTime, this.GoodTime, this.MehTime);
         self.approachTime = this.AR<5? 1800-120*this.AR: 1950-150*this.AR;
         self.approachFadeInTime = Math.min(800, self.approachTime);
         
@@ -227,360 +227,397 @@ function(Osu, setPlayerActions, SliderMesh, ScoreOverlay, VolumeMenu, LoadingMen
 
         setPlayerActions(self);
 
-        self.game.paused = false;self.triggerFail = function(time) {
-        if (self.failed || self.nofail) return;
-    
-    self.failed = true;
-    self.game.failed = true;
-    
-    if (game.sampleSectionFail) {
-        game.sampleSectionFail.volume = game.masterVolume * game.effectVolume;
-        game.sampleSectionFail.play();
-    }
-    
-    self.osu.audio.pause();
-    
-    if (self.showFailAnimation) {
-        for (let i=0; i<self.upcomingHits.length; ++i) {
-            let hit = self.upcomingHits[i];
-            if (hit.score < 0 && hit.objects) {
-                for (let j=0; j<hit.objects.length; ++j) {
-                    let obj = hit.objects[j];
-                    if (obj && obj.visible) {
-                        obj.classList = obj.classList || [];
-                        obj.classList.push('hit-object-falling');
-                        
-                        let fallDelay = Math.random() * 500;
-                        setTimeout(() => {
-                            if (obj.parent) {
-                                let container = obj.parent;
-                                container.removeChild(obj);
+        self.game.paused = false;
+        self.triggerFail = function(time) {
+            if (self.failed || self.nofail) return;
+        
+            self.failed = true;
+            self.game.failed = true;
+            
+            if (game.sampleSectionFail) {
+                game.sampleSectionFail.volume = game.masterVolume * game.effectVolume;
+                game.sampleSectionFail.play();
+            }
+            
+            self.osu.audio.pause();
+            
+            if (self.showFailAnimation) {
+                for (let i=0; i<self.upcomingHits.length; ++i) {
+                    let hit = self.upcomingHits[i];
+                    if (hit.score < 0 && hit.objects) {
+                        for (let j=0; j<hit.objects.length; ++j) {
+                            let obj = hit.objects[j];
+                            if (obj && obj.visible) {
+                                obj.classList = obj.classList || [];
+                                obj.classList.push('hit-object-falling');
+                                
+                                let fallDelay = Math.random() * 500;
+                                setTimeout(() => {
+                                    if (obj.parent) {
+                                        let container = obj.parent;
+                                        container.removeChild(obj);
+                                    }
+                                }, 1000 + fallDelay);
                             }
-                        }, 1000 + fallDelay);
+                        }
                     }
                 }
             }
+            
+            self.showFailScreen();
+        };
+
+        self.showFailScreen = function() {
+            const failOverlay = document.createElement('div');
+            failOverlay.className = 'fail-overlay';
+            failOverlay.style.animation = 'fadeIn 0.5s ease';
+            
+            const failText = document.createElement('div');
+            failText.className = 'fail-text';
+            failText.innerText = 'FAILED';
+            
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'fail-buttons';
+            
+            const retryBtn = document.createElement('button');
+            retryBtn.className = 'fail-button retry';
+            retryBtn.innerText = 'Retry';
+            retryBtn.onclick = () => {
+                document.body.removeChild(failOverlay);
+                self.retry();
+            };
+            
+            const quitBtn = document.createElement('button');
+            quitBtn.className = 'fail-button quit';
+            quitBtn.innerText = 'Quit';
+            quitBtn.onclick = () => {
+                document.body.removeChild(failOverlay);
+                self.quit();
+            };
+            
+            buttonContainer.appendChild(retryBtn);
+            buttonContainer.appendChild(quitBtn);
+            
+            failOverlay.appendChild(failText);
+            failOverlay.appendChild(buttonContainer);
+            
+            document.body.appendChild(failOverlay);
+        };
+
+        self.drainHP = function(amount) {
+            if (!self.enableHPDrain || self.nofail) return;
+            
+            self.hp -= amount;
+            if (self.hp < 0) self.hp = 0;
+            
+            self.scoreOverlay.setHP(self.hp);
+            
+            if (self.hp <= 0 && !self.failed) {
+                self.triggerFail(self.osu.audio.getPosition() * 1000);
+            }
+        };
+
+        self.gainHP = function(amount) {
+            if (!self.enableHPDrain) return;
+            
+            self.hp += amount;
+            if (self.hp > 1) self.hp = 1;
+            
+            self.scoreOverlay.setHP(self.hp);
+        };
+
+        this.pause = function() {
+            if (self.failed) return;
+            if (this.osu.audio.pause()) {
+                this.game.paused = true;
+                let menu = document.getElementById("pause-menu");
+                menu.removeAttribute("hidden");
+                btn_continue = document.getElementById("pausebtn-continue");
+                btn_retry = document.getElementById("pausebtn-retry");
+                btn_quit = document.getElementById("pausebtn-quit");
+                btn_continue.onclick = function() {
+                    self.resume();
+                    btn_continue.onclick = null;
+                    btn_retry.onclick = null;
+                    btn_quit.onclick = null;
+                }
+                btn_retry.onclick = function() {
+                    self.game.paused = false;
+                    menu.setAttribute("hidden","");
+                    self.retry();
+                }
+                btn_quit.onclick = function() {
+                    self.game.paused = false;
+                    menu.setAttribute("hidden","");
+                    self.quit();
+                }
+            }
+        };
+
+        this.resume = function() {
+            this.osu.audio.play();
+            this.game.paused = false;
+            document.getElementById("pause-menu").setAttribute("hidden","");
+        };
+
+        var wheelCallback;
+        if (game.allowMouseScroll) {
+            wheelCallback = function(e) {
+                self.game.masterVolume -= e.deltaY * 0.002;
+                if (self.game.masterVolume < 0) {
+                    self.game.masterVolume = 0;
+                } 
+                if (self.game.masterVolume > 1) {
+                    self.game.masterVolume = 1;
+                }
+                self.osu.audio.gain.gain.value = self.game.musicVolume * self.game.masterVolume;
+                self.volumeMenu.setVolume(self.game.masterVolume * 100);
+            };
+            window.addEventListener('wheel', wheelCallback);
         }
-    }
-    
-    self.showFailScreen();
-};
 
-self.showFailScreen = function() {
-    const failOverlay = document.createElement('div');
-    failOverlay.className = 'fail-overlay';
-    failOverlay.style.animation = 'fadeIn 0.5s ease';
-    
-    const failText = document.createElement('div');
-    failText.className = 'fail-text';
-    failText.innerText = 'FAILED';
-    
-    const buttonContainer = document.createElement('div');
-    buttonContainer.className = 'fail-buttons';
-    
-    const retryBtn = document.createElement('button');
-    retryBtn.className = 'fail-button retry';
-    retryBtn.innerText = 'Retry';
-    retryBtn.onclick = () => {
-        document.body.removeChild(failOverlay);
-        self.retry();
-    };
-    
-    const quitBtn = document.createElement('button');
-    quitBtn.className = 'fail-button quit';
-    quitBtn.innerText = 'Quit';
-    quitBtn.onclick = () => {
-        document.body.removeChild(failOverlay);
-        self.quit();
-    };
-    
-    buttonContainer.appendChild(retryBtn);
-    buttonContainer.appendChild(quitBtn);
-    
-    failOverlay.appendChild(failText);
-    failOverlay.appendChild(buttonContainer);
-    
-    document.body.appendChild(failOverlay);
-};
+        var pauseKeyCallback = function(e) {
+            if ((e.keyCode === game.ESCkeycode || e.keyCode == game.ESC2keycode) && !self.game.paused && !self.failed) {
+                self.pause();
+                self.pausing = true;
+            }
+        };
 
-self.drainHP = function(amount) {
-    if (!self.enableHPDrain || self.nofail) return;
-    
-    self.hp -= amount;
-    if (self.hp < 0) self.hp = 0;
-    
-    self.scoreOverlay.setHP(self.hp);
-    
-    if (self.hp <= 0 && !self.failed) {
-        self.triggerFail(self.osu.audio.getPosition() * 1000);
-    }
-};
+        var resumeKeyCallback = function(e) {
+            if ((e.keyCode === game.ESCkeycode || e.keyCode == game.ESC2keycode) && self.game.paused) {
+                if (self.pausing)
+                    self.pausing = false;
+                else
+                    self.resume();
+            }
+        };
 
-self.gainHP = function(amount) {
-    if (!self.enableHPDrain) return;
-    
-    self.hp += amount;
-    if (self.hp > 1) self.hp = 1;
-    
-    self.scoreOverlay.setHP(self.hp);
-};
-
-this.pause = function() {
-    if (self.failed) return;
-    if (this.osu.audio.pause()) {
-        this.game.paused = true;
-        let menu = document.getElementById("pause-menu");
-        menu.removeAttribute("hidden");
-        btn_continue = document.getElementById("pausebtn-continue");
-        btn_retry = document.getElementById("pausebtn-retry");
-        btn_quit = document.getElementById("pausebtn-quit");
-        btn_continue.onclick = function() {
-            self.resume();
-            btn_continue.onclick = null;
-            btn_retry.onclick = null;
-            btn_quit.onclick = null;
-        }
-        btn_retry.onclick = function() {
-            self.game.paused = false;
-            menu.setAttribute("hidden","");
-            self.retry();
-        }
-        btn_quit.onclick = function() {
-            self.game.paused = false;
-            menu.setAttribute("hidden","");
-            self.quit();
-        }
-    }
-};
-
-this.resume = function() {
-    this.osu.audio.play();
-    this.game.paused = false;
-    document.getElementById("pause-menu").setAttribute("hidden","");
-};
-
-var wheelCallback;
-if (game.allowMouseScroll) {
-    wheelCallback = function(e) {
-        self.game.masterVolume -= e.deltaY * 0.002;
-        if (self.game.masterVolume < 0) {
-            self.game.masterVolume = 0;
-        } 
-        if (self.game.masterVolume > 1) {
-            self.game.masterVolume = 1;
-        }
-        self.osu.audio.gain.gain.value = self.game.musicVolume * self.game.masterVolume;
-        self.volumeMenu.setVolume(self.game.masterVolume * 100);
-    };
-    window.addEventListener('wheel', wheelCallback);
-}
-
-var pauseKeyCallback = function(e) {
-    if ((e.keyCode === game.ESCkeycode || e.keyCode == game.ESC2keycode) && !self.game.paused && !self.failed) {
-        self.pause();
-        self.pausing = true;
-    }
-};
-
-var resumeKeyCallback = function(e) {
-    if ((e.keyCode === game.ESCkeycode || e.keyCode == game.ESC2keycode) && self.game.paused) {
-        if (self.pausing)
-            self.pausing = false;
-        else
-            self.resume();
-    }
-};
-
-var skipKeyCallback = function(e) {
-    if (e.keyCode === game.CTRLkeycode && !self.game.paused && !self.failed) {
-        if (!self.skipped && !self.pausing)
-            self.skip();
-    }
-}
-
-window.addEventListener("keydown", pauseKeyCallback);
-window.addEventListener("keyup", resumeKeyCallback);
-window.addEventListener("keydown", skipKeyCallback);
-
-this.fadeOutEasing = function(t) {
-    if (t <= 0) return 1;
-    if (t > 1) return 0;
-    return 1 - Math.sin(t * Math.PI/2);
-}
-
-function judgementText(points) {
-    switch (points) {
-        case 0: return "miss";
-        case 50: return "meh";
-        case 100: return "good";
-        case 300: return "great";
-        default: throw "no such judgement";
-    }
-}
-
-function judgementColor(points) {
-    switch (points) {
-        case 0: return 0xed1121;
-        case 50: return 0xffcc22;
-        case 100: return 0x88b300;
-        case 300: return 0x66ccff;
-        default: throw "no such judgement";
-    }
-}
-
-this.createJudgement = function(x, y, depth, finalTime) {
-    let judge = new PIXI.BitmapText('', {font: {name: 'Venera', size: 20}});
-    judge.anchor.set(0.5);
-    judge.scale.set(0.85 * this.hitSpriteScale, 1 * this.hitSpriteScale);
-    judge.visible = false;
-    judge.basex = judge.x = x;
-    judge.basey = judge.y = y;
-    judge.depth = depth;
-    judge.points = -1;
-    judge.finalTime = finalTime;
-    judge.defaultScore = 0;
-    return judge;
-}
-
-this.invokeJudgement = function(judge, points, time) {
-    judge.visible = true;
-    judge.points = points;
-    judge.t0 = time;
-    if (!this.hideGreat || points!=300)
-        judge.text = judgementText(points);
-    judge.tint = judgementColor(points);
-    this.updateJudgement(judge, time);
-}
-
-this.updateJudgement = function(judge, time) {
-    if (judge.points < 0 && time >= judge.finalTime) {
-        this.scoreOverlay.hit(judge.defaultScore, 300, time);
-        
-        if (judge.defaultScore === 0) {
-            this.drainHP(0.02);
-            if (this.suddendeath) {
-                this.triggerFail(time);
+        var skipKeyCallback = function(e) {
+            if (e.keyCode === game.CTRLkeycode && !self.game.paused && !self.failed) {
+                if (!self.skipped && !self.pausing)
+                    self.skip();
             }
         }
+
+        window.addEventListener("keydown", pauseKeyCallback);
+        window.addEventListener("keyup", resumeKeyCallback);
+        window.addEventListener("keydown", skipKeyCallback);
+
+        this.fadeOutEasing = function(t) {
+            if (t <= 0) return 1;
+            if (t > 1) return 0;
+            return 1 - Math.sin(t * Math.PI/2);
+        }
+
+        function judgementText(points) {
+            switch (points) {
+                case 0: return "miss";
+                case 50: return "meh";
+                case 100: return "good";
+                case 300: return "great";
+                default: throw "no such judgement";
+            }
+        }
+
+        function judgementColor(points) {
+            switch (points) {
+                case 0: return 0xed1121;
+                case 50: return 0xffcc22;
+                case 100: return 0x88b300;
+                case 300: return 0x66ccff;
+                default: throw "no such judgement";
+            }
+        }
+
+        this.createJudgement = function(x, y, depth, finalTime) {
+            let judge = new PIXI.BitmapText('', {font: {name: 'Venera', size: 20}});
+            judge.anchor.set(0.5);
+            judge.scale.set(0.85 * this.hitSpriteScale, 1 * this.hitSpriteScale);
+            judge.visible = false;
+            judge.basex = judge.x = x;
+            judge.basey = judge.y = y;
+            judge.depth = depth;
+            judge.points = -1;
+            judge.finalTime = finalTime;
+            judge.defaultScore = 0;
+            return judge;
+        }
+
+        this.invokeJudgement = function(judge, points, time) {
+            judge.visible = true;
+            judge.points = points;
+            judge.t0 = time;
+            if (!this.hideGreat || points!=300)
+                judge.text = judgementText(points);
+            judge.tint = judgementColor(points);
+            this.updateJudgement(judge, time);
+        }
+
+        this.updateJudgement = function(judge, time) {
+            if (judge.points < 0 && time >= judge.finalTime) {
+                this.scoreOverlay.hit(judge.defaultScore, 300, time);
+                
+                if (judge.defaultScore === 0) {
+                    this.drainHP(0.02);
+                    if (this.suddendeath) {
+                        this.triggerFail(time);
+                    }
+                }
+                
+                this.invokeJudgement(judge, judge.defaultScore, time);
+                return;
+            }
+            if (!judge.visible) return;
+
+            let t = time - judge.t0;
+
+            if (judge.points == 0) {
+                if (t > 800) {
+                    judge.visible = false;
+                    return;
+                }
+                judge.alpha = (t<100)? t/100: (t<600)? 1: 1-(t-600)/200;
+                judge.y = judge.basey + 100 * Math.pow(t/800, 5) * this.hitSpriteScale;
+                judge.rotation = 0.7 * Math.pow(t/800, 5);
+            }
+            else {
+                if (t > 500) {
+                    judge.visible = false;
+                    return;
+                }
+                judge.alpha = (t<100)? t/100: 1-(t-100)/400;
+                judge.letterSpacing = 70 *(Math.pow(t/1800-1,5)+1);
+            }
+        }
+
+        this.curtimingid = 0;
+
+        this.playTicksound = function playTicksound(hit, time) {
+            while (this.curtimingid+1 < this.track.timingPoints.length && this.track.timingPoints[this.curtimingid+1].offset <= time)
+                this.curtimingid++;
+            while (this.curtimingid>0 && this.track.timingPoints[this.curtimingid].offset > time)
+                this.curtimingid--;
+            let timing = this.track.timingPoints[this.curtimingid];
+            let volume = self.game.masterVolume * self.game.effectVolume * (hit.hitSample.volume || timing.volume) / 100;
+            let defaultSet = timing.sampleSet || self.game.sampleSet;
+            self.game.sample[defaultSet].slidertick.volume = volume;
+            self.game.sample[defaultSet].slidertick.play();
+        };
+
+        this.playHitsound = function playHitsound(hit, id, time) {
+            while (this.curtimingid+1 < this.track.timingPoints.length && this.track.timingPoints[this.curtimingid+1].offset <= time)
+                this.curtimingid++;
+            while (this.curtimingid>0 && this.track.timingPoints[this.curtimingid].offset > time)
+                this.curtimingid--;
+            let timing = this.track.timingPoints[this.curtimingid];
+            let volume = self.game.masterVolume * self.game.effectVolume * (hit.hitSample.volume || timing.volume) / 100;
+            let defaultSet = timing.sampleSet || self.game.sampleSet;
+            
+            function playHit(bitmask, normalSet, additionSet) {
+                self.game.sample[normalSet].hitnormal.volume = volume;
+                self.game.sample[normalSet].hitnormal.play();
+                if (bitmask & 2) {
+                    self.game.sample[additionSet].hitwhistle.volume = volume;
+                    self.game.sample[additionSet].hitwhistle.play();
+                }
+                if (bitmask & 4) {
+                    self.game.sample[additionSet].hitfinish.volume = volume;
+                    self.game.sample[additionSet].hitfinish.play();
+                }
+                if (bitmask & 8) {
+                    self.game.sample[additionSet].hitclap.volume = volume;
+                    self.game.sample[additionSet].hitclap.play();
+                }
+            }
+            
+            if (hit.type == 'circle' || hit.type == 'spinner') {
+                let toplay = hit.hitSound;
+                let normalSet = hit.hitSample.normalSet || defaultSet;
+                let additionSet = hit.hitSample.additionSet || normalSet;
+                playHit(toplay, normalSet, additionSet);
+            }
+            if (hit.type == 'slider') {
+                let toplay = hit.edgeHitsounds[id];
+                let normalSet = hit.edgeSets[id].normalSet || defaultSet;
+                let additionSet = hit.edgeSets[id].additionSet || normalSet;
+                playHit(toplay, normalSet, additionSet);
+            }
+        };
+
+        this.hitSuccess = function hitSuccess(hit, points, time){
+            this.scoreOverlay.hit(points, 300, time);
+            
+            let hpGain = 0;
+            let hpLoss = 0;
+            
+            if (points === 300) {
+                hpGain = 0.01;
+            } else if (points === 100) {
+                hpGain = 0.005;
+            } else if (points === 50) {
+                hpLoss = 0.005;
+            } else if (points === 0) {
+                hpLoss = 0.02;
+                if (this.suddendeath) {
+                    this.triggerFail(time);
+                }
+            }
+            
+            if (hpGain > 0) {
+                this.gainHP(hpGain);
+            } else if (hpLoss > 0) {
+                this.drainHP(hpLoss);
+            }
+            
+            if (points > 0) {
+                if (hit.type == "spinner")
+                    self.playHitsound(hit, 0, hit.endTime);
+                else {
+                    self.playHitsound(hit, 0, hit.time);
+                    self.errorMeter.hit(time - hit.time, time);
+                }
+                if (hit.type == "slider") {
+                    hit.judgements[hit.judgements.length-1].defaultScore = 50;
+                }
+            }
+            
+            hit.score = points;
+            hit.clickTime = time;
+            self.invokeJudgement(hit.judgements[0], points, time);
+        };
         
-        this.invokeJudgement(judge, judge.defaultScore, time);
-        return;
-    }
-    if (!judge.visible) return;
-
-    let t = time - judge.t0;
-
-    if (judge.points == 0) {
-        if (t > 800) {
-            judge.visible = false;
-            return;
-        }
-        judge.alpha = (t<100)? t/100: (t<600)? 1: 1-(t-600)/200;
-        judge.y = judge.basey + 100 * Math.pow(t/800, 5) * this.hitSpriteScale;
-        judge.rotation = 0.7 * Math.pow(t/800, 5);
-    }
-    else {
-        if (t > 500) {
-            judge.visible = false;
-            return;
-        }
-        judge.alpha = (t<100)? t/100: 1-(t-100)/400;
-        judge.letterSpacing = 70 *(Math.pow(t/1800-1,5)+1);
-    }
-}
-
-this.curtimingid = 0;
-
-this.playTicksound = function playTicksound(hit, time) {
-    while (this.curtimingid+1 < this.track.timingPoints.length && this.track.timingPoints[this.curtimingid+1].offset <= time)
-        this.curtimingid++;
-    while (this.curtimingid>0 && this.track.timingPoints[this.curtimingid].offset > time)
-        this.curtimingid--;
-    let timing = this.track.timingPoints[this.curtimingid];
-    let volume = self.game.masterVolume * self.game.effectVolume * (hit.hitSample.volume || timing.volume) / 100;
-    let defaultSet = timing.sampleSet || self.game.sampleSet;
-    self.game.sample[defaultSet].slidertick.volume = volume;
-    self.game.sample[defaultSet].slidertick.play();
-};
-
-this.playHitsound = function playHitsound(hit, id, time) {
-    while (this.curtimingid+1 < this.track.timingPoints.length && this.track.timingPoints[this.curtimingid+1].offset <= time)
-        this.curtimingid++;
-    while (this.curtimingid>0 && this.track.timingPoints[this.curtimingid].offset > time)
-        this.curtimingid--;
-    let timing = this.track.timingPoints[this.curtimingid];
-    let volume = self.game.masterVolume * self.game.effectVolume * (hit.hitSample.volume || timing.volume) / 100;
-    let defaultSet = timing.sampleSet || self.game.sampleSet;
-    
-    function playHit(bitmask, normalSet, additionSet) {
-        self.game.sample[normalSet].hitnormal.volume = volume;
-        self.game.sample[normalSet].hitnormal.play();
-        if (bitmask & 2) {
-            self.game.sample[additionSet].hitwhistle.volume = volume;
-            self.game.sample[additionSet].hitwhistle.play();
-        }
-        if (bitmask & 4) {
-            self.game.sample[additionSet].hitfinish.volume = volume;
-            self.game.sample[additionSet].hitfinish.play();
-        }
-        if (bitmask & 8) {
-            self.game.sample[additionSet].hitclap.volume = volume;
-            self.game.sample[additionSet].hitclap.play();
-        }
+        this.quit = function() {
+            self.osu.audio.stop();
+            self.game.finished = true;
+            document.getElementById("game-area").setAttribute("hidden", "");
+            document.getElementById("main-page").removeAttribute("hidden");
+        };
+        
+        this.retry = function() {
+            self.osu.audio.stop();
+            self.game.finished = false;
+            self.game.failed = false;
+            setTimeout(function() {
+                window.launchGame(self.track, self.osu.beatmap);
+            }, 100);
+        };
+        
+        this.skip = function() {
+            if (!self.skipped) {
+                self.skipped = true;
+                self.osu.audio.seek(self.skipTime);
+            }
+        };
+        
+        this.start = function() {
+            if (!self.started) {
+                self.started = true;
+                self.osu.audio.play();
+            }
+        };
+        
+        return self;
     }
     
-    if (hit.type == 'circle' || hit.type == 'spinner') {
-        let toplay = hit.hitSound;
-        let normalSet = hit.hitSample.normalSet || defaultSet;
-        let additionSet = hit.hitSample.additionSet || normalSet;
-        playHit(toplay, normalSet, additionSet);
-    }
-    if (hit.type == 'slider') {
-        let toplay = hit.edgeHitsounds[id];
-        let normalSet = hit.edgeSets[id].normalSet || defaultSet;
-        let additionSet = hit.edgeSets[id].additionSet || normalSet;
-        playHit(toplay, normalSet, additionSet);
-    }
-};
-
-this.hitSuccess = function hitSuccess(hit, points, time){
-    this.scoreOverlay.hit(points, 300, time);
-    
-    let hpGain = 0;
-    let hpLoss = 0;
-    
-    if (points === 300) {
-        hpGain = 0.01;
-    } else if (points === 100) {
-        hpGain = 0.005;
-    } else if (points === 50) {
-        hpLoss = 0.005;
-    } else if (points === 0) {
-        hpLoss = 0.02;
-        if (this.suddendeath) {
-            this.triggerFail(time);
-        }
-    }
-    
-    if (hpGain > 0) {
-        this.gainHP(hpGain);
-    } else if (hpLoss > 0) {
-        this.drainHP(hpLoss);
-    }
-    
-    if (points > 0) {
-        if (hit.type == "spinner")
-            self.playHitsound(hit, 0, hit.endTime);
-        else {
-            self.playHitsound(hit, 0, hit.time);
-            self.errorMeter.hit(time - hit.time, time);
-        }
-        if (hit.type == "slider") {
-            hit.judgements[hit.judgements.length-1].defaultScore = 50;
-        }
-    }
-    
-    hit.score = points;
-    hit.clickTime = time;
-    self.invokeJudgement(hit.judgements[0], points, time);
-};
+    return Playback;
+});
