@@ -9,6 +9,17 @@
         <link rel="stylesheet" type="text/css" href="style/main.css">
         <link rel="stylesheet" type="text/css" href="style/font.css">
         <link rel="icon" href="favicon.png">
+        <script>
+            window.__requirejsQueue = [];
+            window.__requirejsQueueProcessed = false;
+            window.define = function() {
+                window.__requirejsQueue.push(arguments);
+            };
+            window.define.amd = {};
+            window.require = function() {
+                console.log('Require called before RequireJS loaded', arguments);
+            };
+        </script>
         <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
         <script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
         <script src="scripts/lib/localforage.min.js"></script>
@@ -101,7 +112,354 @@
                 </div>
             </div>
         </div>
+        
+        <div class="beatmap-diff-menu" id="beatmap-diff-menu" hidden>
+            <div class="diff-menu-header">
+                <h3>Select Difficulty</h3>
+                <button class="close-diff-menu" onclick="hideDiffMenu()">×</button>
+            </div>
+            <div class="diff-list" id="diff-list"></div>
+        </div>
+        
+        <style>
+            .beatmap-diff-menu {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: var(--bg-elevated);
+                border-radius: 10px;
+                padding: 20px;
+                min-width: 300px;
+                max-width: 500px;
+                max-height: 80vh;
+                overflow-y: auto;
+                z-index: 1000;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                display: block;
+            }
+            
+            .beatmap-diff-menu[hidden] {
+                display: none !important;
+            }
+            
+            .diff-menu-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 20px;
+                padding-bottom: 10px;
+                border-bottom: 1px solid var(--border);
+            }
+            
+            .diff-menu-header h3 {
+                margin: 0;
+                color: var(--text);
+            }
+            
+            .close-diff-menu {
+                background: none;
+                border: none;
+                color: var(--text);
+                font-size: 24px;
+                cursor: pointer;
+                padding: 0;
+                width: 30px;
+                height: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+            }
+            
+            .close-diff-menu:hover {
+                background: var(--bg-hover);
+            }
+            
+            .diff-list {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .diff-item {
+                padding: 15px;
+                background: var(--bg);
+                border-radius: 8px;
+                cursor: pointer;
+                transition: background 0.2s;
+                border: 1px solid var(--border);
+            }
+            
+            .diff-item:hover {
+                background: var(--bg-hover);
+                border-color: var(--accent);
+            }
+            
+            .diff-item.selected {
+                background: var(--accent);
+                color: white;
+                border-color: var(--accent);
+            }
+            
+            .diff-name {
+                font-weight: bold;
+                margin-bottom: 5px;
+                color: var(--text);
+            }
+            
+            .diff-meta {
+                font-size: 12px;
+                color: var(--text-secondary);
+                display: flex;
+                gap: 15px;
+            }
+            
+            .fail-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.9);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                color: white;
+            }
+            
+            .fail-text {
+                font-size: 48px;
+                font-weight: bold;
+                color: #ff4444;
+                margin-bottom: 40px;
+                text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
+            }
+            
+            .fail-buttons {
+                display: flex;
+                gap: 20px;
+            }
+            
+            .fail-button {
+                padding: 15px 30px;
+                font-size: 18px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: transform 0.2s, background 0.2s;
+            }
+            
+            .fail-button.retry {
+                background: #4CAF50;
+                color: white;
+            }
+            
+            .fail-button.quit {
+                background: #f44336;
+                color: white;
+            }
+            
+            .fail-button:hover {
+                transform: scale(1.05);
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            .hit-object-falling {
+                animation: fall 1s ease-in forwards;
+            }
+            
+            @keyframes fall {
+                0% {
+                    transform: translateY(0) rotate(0deg);
+                    opacity: 1;
+                }
+                100% {
+                    transform: translateY(100px) rotate(45deg);
+                    opacity: 0;
+                }
+            }
+            
+            .download-progress {
+                background: var(--bg-elevated);
+                border-radius: 8px;
+                padding: 15px;
+                margin: 10px 0;
+                border: 1px solid var(--border);
+                transition: opacity 0.5s ease;
+            }
+            
+            .download-progress .title {
+                font-weight: bold;
+                margin-bottom: 10px;
+                color: var(--text);
+            }
+            
+            .download-progress progress {
+                width: 100%;
+                height: 10px;
+                border-radius: 5px;
+                overflow: hidden;
+            }
+            
+            .download-progress progress::-webkit-progress-bar {
+                background: var(--bg);
+                border-radius: 5px;
+            }
+            
+            .download-progress progress::-webkit-progress-value {
+                background: var(--accent);
+                border-radius: 5px;
+                transition: width 0.3s ease;
+            }
+            
+            .download-progress progress::-moz-progress-bar {
+                background: var(--accent);
+                border-radius: 5px;
+            }
+            
+            .progress-text {
+                margin-top: 8px;
+                font-size: 14px;
+                color: var(--text-secondary);
+                display: flex;
+                justify-content: space-between;
+            }
+            
+            .progress-speed {
+                font-size: 12px;
+                color: var(--text-tertiary);
+            }
+            
+            .download-progress.completed {
+                border-color: #4CAF50;
+            }
+            
+            .download-progress.failed {
+                border-color: #f44336;
+            }
+        </style>
+        
         <script>
+            let currentBeatmapSid = null;
+            let currentBeatmapData = null;
+            
+            function showDiffMenu(sid, beatmapData) {
+                currentBeatmapSid = sid;
+                currentBeatmapData = beatmapData;
+                
+                const menu = document.getElementById('beatmap-diff-menu');
+                const diffList = document.getElementById('diff-list');
+                
+                diffList.innerHTML = '';
+                
+                if (beatmapData && beatmapData.beatmaps) {
+                    beatmapData.beatmaps.forEach((diff, index) => {
+                        if ((diff.mode & 1) === 0) return;
+                        
+                        const diffItem = document.createElement('div');
+                        diffItem.className = 'diff-item';
+                        diffItem.onclick = () => selectDifficulty(diff);
+                        
+                        const nameDiv = document.createElement('div');
+                        nameDiv.className = 'diff-name';
+                        nameDiv.textContent = diff.version;
+                        
+                        const metaDiv = document.createElement('div');
+                        metaDiv.className = 'diff-meta';
+                        metaDiv.innerHTML = `
+                            <span>★ ${diff.difficultyrating.toFixed(2)}</span>
+                            <span>AR ${diff.diff_approach}</span>
+                            <span>CS ${diff.diff_size}</span>
+                            <span>OD ${diff.diff_overall}</span>
+                            <span>HP ${diff.diff_drain}</span>
+                        `;
+                        
+                        diffItem.appendChild(nameDiv);
+                        diffItem.appendChild(metaDiv);
+                        diffList.appendChild(diffItem);
+                    });
+                } else {
+                    const noDiff = document.createElement('div');
+                    noDiff.className = 'diff-item';
+                    noDiff.textContent = 'No difficulties found';
+                    diffList.appendChild(noDiff);
+                }
+                
+                menu.removeAttribute('hidden');
+            }
+            
+            function hideDiffMenu() {
+                const menu = document.getElementById('beatmap-diff-menu');
+                menu.setAttribute('hidden', '');
+                currentBeatmapSid = null;
+                currentBeatmapData = null;
+            }
+            
+            function selectDifficulty(diff) {
+                hideDiffMenu();
+                
+                if (currentBeatmapSid && currentBeatmapData) {
+                    console.log('Selected difficulty:', diff);
+                    
+                    if (typeof window.launchGame === 'function') {
+                        const track = {
+                            sid: currentBeatmapSid,
+                            title: currentBeatmapData.title,
+                            artist: currentBeatmapData.artist,
+                            creator: currentBeatmapData.creator,
+                            tags: currentBeatmapData.tags,
+                            source: currentBeatmapData.source,
+                            difficulty: {
+                                OverallDifficulty: parseFloat(diff.diff_overall),
+                                CircleSize: parseFloat(diff.diff_size),
+                                ApproachRate: parseFloat(diff.diff_approach),
+                                HPDrainRate: parseFloat(diff.diff_drain)
+                            },
+                            hitObjects: []
+                        };
+                        
+                        window.launchGame(track, diff);
+                    } else {
+                        console.error('launchGame function not available');
+                        showToast('Game not ready yet. Please wait for scripts to load.', 'error');
+                    }
+                }
+            }
+            
+            function setupBeatmapClickHandler() {
+                document.addEventListener('click', function(e) {
+                    const beatmapBox = e.target.closest('.beatmap-box');
+                    if (beatmapBox) {
+                        e.preventDefault();
+                        
+                        const sid = beatmapBox.sid;
+                        const setdata = beatmapBox.setdata;
+                        
+                        if (!sid) {
+                            showToast('Invalid beatmap ID', 'error');
+                            return;
+                        }
+                        
+                        if (setdata && setdata.beatmaps && setdata.beatmaps.length > 1) {
+                            showDiffMenu(sid, setdata);
+                        } else {
+                            selectDifficulty(setdata.beatmaps[0]);
+                        }
+                    }
+                });
+            }
+            
+            document.addEventListener('DOMContentLoaded', function() {
+                setupBeatmapClickHandler();
+            });
+            
             const initBeatmapLists = async () => {
                 if (!window.localforage) {
                     console.error('localforage not supported');
@@ -157,6 +515,11 @@
                 document.getElementById('beatmap-list-hot')
             );
             initBeatmapLists();
+            
+            window.setupBeatmapMenu = setupBeatmapClickHandler;
+            window.showDiffMenu = showDiffMenu;
+            window.hideDiffMenu = hideDiffMenu;
+            window.selectDifficulty = selectDifficulty;
         </script>
     </body>
 </html>
