@@ -10,19 +10,16 @@
         <link rel="stylesheet" type="text/css" href="style/font.css">
         <link rel="icon" href="favicon.png">
         <script>
-            window.__requirejsQueue = [];
-            window.__requirejsQueueProcessed = false;
-            window.define = function() {
-                window.__requirejsQueue.push(arguments);
-            };
+            delete window.define;
+            delete window.require;
+            delete window.requirejs;
+            window.__requireQueue = [];
+            window.define = function() { window.__requireQueue.push(['define', arguments]); };
             window.define.amd = {};
-            window.require = function() {
-                console.log('Require called before RequireJS loaded', arguments);
-            };
+            window.require = function() { window.__requireQueue.push(['require', arguments]); };
         </script>
         <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
         <script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
-        <script src="scripts/lib/localforage.min.js"></script>
         <script src="scripts/launchgame.js"></script>
         <script src="scripts/downloader.js"></script>
         <script src="scripts/addbeatmaplist.js"></script>
@@ -450,7 +447,9 @@
                         if (setdata && setdata.beatmaps && setdata.beatmaps.length > 1) {
                             showDiffMenu(sid, setdata);
                         } else {
-                            selectDifficulty(setdata.beatmaps[0]);
+                            if (setdata && setdata.beatmaps && setdata.beatmaps[0]) {
+                                selectDifficulty(setdata.beatmaps[0]);
+                            }
                         }
                     }
                 });
@@ -460,18 +459,38 @@
                 setupBeatmapClickHandler();
             });
             
-            const initBeatmapLists = async () => {
-                if (!window.localforage) {
-                    console.error('localforage not supported');
-                    return;
+            window.liked_sid_set = new Set();
+            window.liked_sid_set_callbacks = [];
+            
+            try {
+                const saved = localStorage.getItem('likedsidset');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (Array.isArray(parsed)) {
+                        window.liked_sid_set = new Set(parsed);
+                    }
                 }
-
+            } catch(e) {
+                console.log('No saved favorites found');
+            }
+            
+            try {
+                const playHistory = localStorage.getItem('playhistory1000');
+                if (playHistory) {
+                    window.playHistory1000 = JSON.parse(playHistory);
+                } else {
+                    window.playHistory1000 = [];
+                }
+            } catch(e) {
+                window.playHistory1000 = [];
+            }
+            
+            const initBeatmapLists = () => {
                 const listHistory = document.getElementById('beatmap-list-history');
                 try {
-                    const playHistory = await localforage.getItem('playhistory1000');
-                    if (playHistory?.length) {
+                    if (window.playHistory1000?.length) {
                         const uniqueSids = [...new Set(
-                            playHistory
+                            window.playHistory1000
                                 .reverse()
                                 .filter(item => item.sid)
                                 .map(item => item.sid)
@@ -481,7 +500,7 @@
                             addBeatmapSid(uniqueSids[i], listHistory);
                         }
                     } else {
-                        listHistory.innerText = 'No play history yet. Click on a beatmap to start playing.';
+                        listHistory.innerText = 'No play history yet.';
                     }
                 } catch (err) {
                     listHistory.innerText = 'Failed to load play history.';
