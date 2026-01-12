@@ -9,21 +9,28 @@
         <link rel="stylesheet" type="text/css" href="style/main.css">
         <link rel="stylesheet" type="text/css" href="style/font.css">
         <link rel="icon" href="favicon.png">
+        
         <script>
-            delete window.define;
-            delete window.require;
-            delete window.requirejs;
-            window.__requireQueue = [];
-            window.define = function() { window.__requireQueue.push(['define', arguments]); };
-            window.define.amd = {};
-            window.require = function() { window.__requireQueue.push(['require', arguments]); };
+            window.__earlyDefines = [];
+            window.__earlyRequires = [];
+            window.define = function() {
+                if (!window.__earlyDefines) window.__earlyDefines = [];
+                window.__earlyDefines.push(['define', arguments]);
+            };
+            if (window.define) window.define.amd = {};
+            window.require = function() {
+                if (!window.__earlyRequires) window.__earlyRequires = [];
+                window.__earlyRequires.push(['require', arguments]);
+            };
         </script>
+        
         <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
         <script src="https://unpkg.com/nprogress@0.2.0/nprogress.js"></script>
         <script src="scripts/launchgame.js"></script>
         <script src="scripts/downloader.js"></script>
         <script src="scripts/addbeatmaplist.js"></script>
         <script src="scripts/settings.js"></script>
+        <script src="scripts/addPlayHistory.js"></script>
         <script src="scripts/jsloader.js"></script>
     </head>
 
@@ -118,232 +125,28 @@
             <div class="diff-list" id="diff-list"></div>
         </div>
         
-        <style>
-            .beatmap-diff-menu {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: var(--bg-elevated);
-                border-radius: 10px;
-                padding: 20px;
-                min-width: 300px;
-                max-width: 500px;
-                max-height: 80vh;
-                overflow-y: auto;
-                z-index: 1000;
-                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                display: block;
-            }
-            
-            .beatmap-diff-menu[hidden] {
-                display: none !important;
-            }
-            
-            .diff-menu-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 20px;
-                padding-bottom: 10px;
-                border-bottom: 1px solid var(--border);
-            }
-            
-            .diff-menu-header h3 {
-                margin: 0;
-                color: var(--text);
-            }
-            
-            .close-diff-menu {
-                background: none;
-                border: none;
-                color: var(--text);
-                font-size: 24px;
-                cursor: pointer;
-                padding: 0;
-                width: 30px;
-                height: 30px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                border-radius: 50%;
-            }
-            
-            .close-diff-menu:hover {
-                background: var(--bg-hover);
-            }
-            
-            .diff-list {
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .diff-item {
-                padding: 15px;
-                background: var(--bg);
-                border-radius: 8px;
-                cursor: pointer;
-                transition: background 0.2s;
-                border: 1px solid var(--border);
-            }
-            
-            .diff-item:hover {
-                background: var(--bg-hover);
-                border-color: var(--accent);
-            }
-            
-            .diff-item.selected {
-                background: var(--accent);
-                color: white;
-                border-color: var(--accent);
-            }
-            
-            .diff-name {
-                font-weight: bold;
-                margin-bottom: 5px;
-                color: var(--text);
-            }
-            
-            .diff-meta {
-                font-size: 12px;
-                color: var(--text-secondary);
-                display: flex;
-                gap: 15px;
-            }
-            
-            .fail-overlay {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.9);
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                z-index: 9999;
-                color: white;
-            }
-            
-            .fail-text {
-                font-size: 48px;
-                font-weight: bold;
-                color: #ff4444;
-                margin-bottom: 40px;
-                text-shadow: 0 0 20px rgba(255, 68, 68, 0.5);
-            }
-            
-            .fail-buttons {
-                display: flex;
-                gap: 20px;
-            }
-            
-            .fail-button {
-                padding: 15px 30px;
-                font-size: 18px;
-                border: none;
-                border-radius: 8px;
-                cursor: pointer;
-                transition: transform 0.2s, background 0.2s;
-            }
-            
-            .fail-button.retry {
-                background: #4CAF50;
-                color: white;
-            }
-            
-            .fail-button.quit {
-                background: #f44336;
-                color: white;
-            }
-            
-            .fail-button:hover {
-                transform: scale(1.05);
-            }
-            
-            @keyframes fadeIn {
-                from { opacity: 0; }
-                to { opacity: 1; }
-            }
-            
-            .hit-object-falling {
-                animation: fall 1s ease-in forwards;
-            }
-            
-            @keyframes fall {
-                0% {
-                    transform: translateY(0) rotate(0deg);
-                    opacity: 1;
-                }
-                100% {
-                    transform: translateY(100px) rotate(45deg);
-                    opacity: 0;
-                }
-            }
-            
-            .download-progress {
-                background: var(--bg-elevated);
-                border-radius: 8px;
-                padding: 15px;
-                margin: 10px 0;
-                border: 1px solid var(--border);
-                transition: opacity 0.5s ease;
-            }
-            
-            .download-progress .title {
-                font-weight: bold;
-                margin-bottom: 10px;
-                color: var(--text);
-            }
-            
-            .download-progress progress {
-                width: 100%;
-                height: 10px;
-                border-radius: 5px;
-                overflow: hidden;
-            }
-            
-            .download-progress progress::-webkit-progress-bar {
-                background: var(--bg);
-                border-radius: 5px;
-            }
-            
-            .download-progress progress::-webkit-progress-value {
-                background: var(--accent);
-                border-radius: 5px;
-                transition: width 0.3s ease;
-            }
-            
-            .download-progress progress::-moz-progress-bar {
-                background: var(--accent);
-                border-radius: 5px;
-            }
-            
-            .progress-text {
-                margin-top: 8px;
-                font-size: 14px;
-                color: var(--text-secondary);
-                display: flex;
-                justify-content: space-between;
-            }
-            
-            .progress-speed {
-                font-size: 12px;
-                color: var(--text-tertiary);
-            }
-            
-            .download-progress.completed {
-                border-color: #4CAF50;
-            }
-            
-            .download-progress.failed {
-                border-color: #f44336;
-            }
-        </style>
-        
         <script>
+            if (typeof showToast === 'undefined') {
+                window.showToast = (message, type = 'info') => {
+                    if (typeof Toastify !== 'undefined') {
+                        Toastify({
+                            text: message,
+                            duration: 3000,
+                            gravity: 'bottom',
+                            position: 'right',
+                            className: type,
+                            stopOnFocus: true,
+                            style: {
+                                background: type === 'success' ? '#00ff88' : 
+                                           type === 'error' ? '#ff4444' : 
+                                           type === 'warning' ? '#ffaa00' : 
+                                           '#222222'
+                            }
+                        }).showToast();
+                    }
+                };
+            }
+            
             let currentBeatmapSid = null;
             let currentBeatmapData = null;
             
@@ -353,6 +156,8 @@
                 
                 const menu = document.getElementById('beatmap-diff-menu');
                 const diffList = document.getElementById('diff-list');
+                
+                if (!menu || !diffList) return;
                 
                 diffList.innerHTML = '';
                 
@@ -366,16 +171,16 @@
                         
                         const nameDiv = document.createElement('div');
                         nameDiv.className = 'diff-name';
-                        nameDiv.textContent = diff.version;
+                        nameDiv.textContent = diff.version || 'Unknown';
                         
                         const metaDiv = document.createElement('div');
                         metaDiv.className = 'diff-meta';
                         metaDiv.innerHTML = `
-                            <span>★ ${diff.difficultyrating.toFixed(2)}</span>
-                            <span>AR ${diff.diff_approach}</span>
-                            <span>CS ${diff.diff_size}</span>
-                            <span>OD ${diff.diff_overall}</span>
-                            <span>HP ${diff.diff_drain}</span>
+                            <span>★ ${parseFloat(diff.difficultyrating || 0).toFixed(2)}</span>
+                            <span>AR ${diff.diff_approach || 0}</span>
+                            <span>CS ${diff.diff_size || 0}</span>
+                            <span>OD ${diff.diff_overall || 0}</span>
+                            <span>HP ${diff.diff_drain || 0}</span>
                         `;
                         
                         diffItem.appendChild(nameDiv);
@@ -394,7 +199,7 @@
             
             function hideDiffMenu() {
                 const menu = document.getElementById('beatmap-diff-menu');
-                menu.setAttribute('hidden', '');
+                if (menu) menu.setAttribute('hidden', '');
                 currentBeatmapSid = null;
                 currentBeatmapData = null;
             }
@@ -408,23 +213,22 @@
                     if (typeof window.launchGame === 'function') {
                         const track = {
                             sid: currentBeatmapSid,
-                            title: currentBeatmapData.title,
-                            artist: currentBeatmapData.artist,
-                            creator: currentBeatmapData.creator,
-                            tags: currentBeatmapData.tags,
-                            source: currentBeatmapData.source,
+                            title: currentBeatmapData.title || 'Unknown',
+                            artist: currentBeatmapData.artist || 'Unknown',
+                            creator: currentBeatmapData.creator || 'Unknown',
+                            tags: currentBeatmapData.tags || '',
+                            source: currentBeatmapData.source || '',
                             difficulty: {
-                                OverallDifficulty: parseFloat(diff.diff_overall),
-                                CircleSize: parseFloat(diff.diff_size),
-                                ApproachRate: parseFloat(diff.diff_approach),
-                                HPDrainRate: parseFloat(diff.diff_drain)
+                                OverallDifficulty: parseFloat(diff.diff_overall || 5),
+                                CircleSize: parseFloat(diff.diff_size || 5),
+                                ApproachRate: parseFloat(diff.diff_approach || 5),
+                                HPDrainRate: parseFloat(diff.diff_drain || 5)
                             },
                             hitObjects: []
                         };
                         
-                        window.launchGame(track, diff);
+                        window.launchGame(currentBeatmapSid, diff, track);
                     } else {
-                        console.error('launchGame function not available');
                         showToast('Game not ready yet. Please wait for scripts to load.', 'error');
                     }
                 }
@@ -432,11 +236,11 @@
             
             function setupBeatmapClickHandler() {
                 document.addEventListener('click', function(e) {
-                    const beatmapBox = e.target.closest('.beatmap-box');
+                    const beatmapBox = e.target.closest('.beatmap-box') || e.target.closest('.beatmapbox');
                     if (beatmapBox) {
                         e.preventDefault();
                         
-                        const sid = beatmapBox.sid;
+                        const sid = beatmapBox.sid || beatmapBox.dataset.sid;
                         const setdata = beatmapBox.setdata;
                         
                         if (!sid) {
@@ -449,6 +253,8 @@
                         } else {
                             if (setdata && setdata.beatmaps && setdata.beatmaps[0]) {
                                 selectDifficulty(setdata.beatmaps[0]);
+                            } else {
+                                showToast('Loading beatmap data...', 'info');
                             }
                         }
                     }
@@ -457,15 +263,17 @@
             
             document.addEventListener('DOMContentLoaded', function() {
                 setupBeatmapClickHandler();
+                console.log('Beatmap click handler setup');
             });
             
             window.liked_sid_set = new Set();
             window.liked_sid_set_callbacks = [];
+            window.playHistory1000 = [];
             
             try {
-                const saved = localStorage.getItem('likedsidset');
-                if (saved) {
-                    const parsed = JSON.parse(saved);
+                const savedLikes = localStorage.getItem('likedsidset');
+                if (savedLikes) {
+                    const parsed = JSON.parse(savedLikes);
                     if (Array.isArray(parsed)) {
                         window.liked_sid_set = new Set(parsed);
                     }
@@ -475,70 +283,91 @@
             }
             
             try {
-                const playHistory = localStorage.getItem('playhistory1000');
-                if (playHistory) {
-                    window.playHistory1000 = JSON.parse(playHistory);
-                } else {
-                    window.playHistory1000 = [];
+                const savedHistory = localStorage.getItem('playhistory1000');
+                if (savedHistory) {
+                    window.playHistory1000 = JSON.parse(savedHistory);
                 }
             } catch(e) {
-                window.playHistory1000 = [];
+                console.log('No play history found');
             }
             
             const initBeatmapLists = () => {
                 const listHistory = document.getElementById('beatmap-list-history');
+                if (!listHistory) return;
+                
                 try {
-                    if (window.playHistory1000?.length) {
+                    if (window.playHistory1000 && window.playHistory1000.length > 0) {
                         const uniqueSids = [...new Set(
                             window.playHistory1000
-                                .reverse()
-                                .filter(item => item.sid)
+                                .slice().reverse()
+                                .filter(item => item && item.sid)
                                 .map(item => item.sid)
                         )];
                         
-                        for (let i = 0; i < 4 && i < uniqueSids.length; i++) {
-                            addBeatmapSid(uniqueSids[i], listHistory);
+                        let count = 0;
+                        for (let i = 0; i < uniqueSids.length && count < 4; i++) {
+                            if (addBeatmapSid) {
+                                addBeatmapSid(uniqueSids[i], listHistory);
+                                count++;
+                            }
+                        }
+                        
+                        if (count === 0) {
+                            listHistory.innerHTML = '<div class="beatmapbox">No play history yet</div>';
                         }
                     } else {
-                        listHistory.innerText = 'No play history yet.';
+                        listHistory.innerHTML = '<div class="beatmapbox">No play history yet</div>';
                     }
                 } catch (err) {
-                    listHistory.innerText = 'Failed to load play history.';
+                    console.error('Failed to load play history:', err);
+                    listHistory.innerHTML = '<div class="beatmapbox">Failed to load history</div>';
                 }
             };
 
-            addBeatmapList(
-                'https://api.sayobot.cn/beatmaplist?0=20&1=0&2=2&5=1',
-                document.getElementById('beatmap-list-new'),
-                t => (t.modes & 1) !== 0,
-                4
-            );
+            if (typeof addBeatmapList === 'function') {
+                addBeatmapList(
+                    'https://api.sayobot.cn/beatmaplist?0=20&1=0&2=2&5=1',
+                    document.getElementById('beatmap-list-new'),
+                    t => (t.modes & 1) !== 0,
+                    4
+                );
+            }
 
             const genRandomList = () => {
                 const list = document.getElementById('beatmap-list-random');
+                if (!list) return;
+                
                 const randStart = Math.floor(Math.random() * 20000);
-                addBeatmapList(
-                    `https://api.sayobot.cn/beatmaplist?0=10&1=${randStart}&2=1&5=1`,
-                    list,
-                    t => {
-                        while (list.firstChild) list.removeChild(list.firstChild);
-                        return (t.modes & 1) !== 0;
-                    },
-                    4
-                );
+                if (typeof addBeatmapList === 'function') {
+                    addBeatmapList(
+                        `https://api.sayobot.cn/beatmaplist?0=10&1=${randStart}&2=1&5=1`,
+                        list,
+                        t => {
+                            while (list.firstChild) list.removeChild(list.firstChild);
+                            return (t.modes & 1) !== 0;
+                        },
+                        4
+                    );
+                }
             };
 
             genRandomList();
-            addBeatmapList(
-                'https://api.sayobot.cn/beatmaplist?0=4&1=0&2=1&5=1',
-                document.getElementById('beatmap-list-hot')
-            );
+            
+            if (typeof addBeatmapList === 'function') {
+                addBeatmapList(
+                    'https://api.sayobot.cn/beatmaplist?0=4&1=0&2=1&5=1',
+                    document.getElementById('beatmap-list-hot')
+                );
+            }
+            
             initBeatmapLists();
             
             window.setupBeatmapMenu = setupBeatmapClickHandler;
             window.showDiffMenu = showDiffMenu;
             window.hideDiffMenu = hideDiffMenu;
             window.selectDifficulty = selectDifficulty;
+            
+            console.log('Index page initialized');
         </script>
     </body>
 </html>
