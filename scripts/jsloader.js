@@ -18,18 +18,26 @@ function loadScript(url, callback) {
 window.beatmaplistLoadedCallback = async function() {
     console.log('Loading game dependencies...');
     
-    delete window.define;
-    delete window.require;
-    delete window.requirejs;
+    window.__earlyDefines = window.__earlyDefines || [];
+    window.__earlyRequires = window.__earlyRequires || [];
     
-    window.__earlyDefines = [];
+    const originalDefine = window.define;
+    const originalRequire = window.require;
+    
     window.define = function() {
+        if (!window.__earlyDefines) window.__earlyDefines = [];
         window.__earlyDefines.push(['define', arguments]);
+        console.log('Queued define()');
     };
-    window.define.amd = {};
+    
+    if (window.define) {
+        window.define.amd = {};
+    }
     
     window.require = function() {
-        window.__earlyDefines.push(['require', arguments]);
+        if (!window.__earlyRequires) window.__earlyRequires = [];
+        window.__earlyRequires.push(['require', arguments]);
+        console.log('Queued require()');
     };
     
     try {
@@ -38,23 +46,11 @@ window.beatmaplistLoadedCallback = async function() {
         
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        if (typeof require === 'undefined') {
+        if (typeof require === 'undefined' && typeof requirejs === 'undefined') {
             throw new Error('RequireJS failed to load');
         }
         
-        if (window.__earlyDefines.length > 0) {
-            window.__earlyDefines.forEach((item) => {
-                const [type, args] = item;
-                if (type === 'define') {
-                    try {
-                        if (args.length === 1) define(args[0]);
-                        else if (args.length === 2) define(args[0], args[1]);
-                        else if (args.length === 3) define(args[0], args[1], args[2]);
-                    } catch(e) {}
-                }
-            });
-            delete window.__earlyDefines;
-        }
+        const req = window.requirejs || window.require;
         
         console.log('Loading Pixi.js...');
         await loadScript('scripts/lib/pixi.min.js');
@@ -106,15 +102,19 @@ window.beatmaplistLoadedCallback = async function() {
         }
         
         console.log('Loading skin and fonts...');
-        PIXI.Loader.shared
-            .add('fonts/venera.fnt')
-            .add("sprites.json")
-            .load(function(loader, resources) {
-                window.skinReady = true;
-                document.getElementById("skin-progress").classList.add("finished");
-                document.body.classList.add("skin-ready");
-                window.Skin = PIXI.Loader.shared.resources["sprites.json"].textures;
-            });
+        if (PIXI && PIXI.Loader) {
+            PIXI.Loader.shared
+                .add('fonts/venera.fnt')
+                .add("sprites.json")
+                .load(function(loader, resources) {
+                    window.skinReady = true;
+                    const skinProgress = document.getElementById("skin-progress");
+                    if (skinProgress) skinProgress.classList.add("finished");
+                    document.body.classList.add("skin-ready");
+                    window.Skin = PIXI.Loader.shared.resources["sprites.json"] ? 
+                        PIXI.Loader.shared.resources["sprites.json"].textures : {};
+                });
+        }
         
         const sample = [
             'hitsounds/normal-hitnormal.ogg',
@@ -136,110 +136,146 @@ window.beatmaplistLoadedCallback = async function() {
             'hitsounds/sectionfail.ogg',
         ];
         
-        window.sounds.whenLoaded = function(){
-            window.game.sample[1].hitnormal = window.sounds['hitsounds/normal-hitnormal.ogg'];
-            window.game.sample[1].hitwhistle = window.sounds['hitsounds/normal-hitwhistle.ogg'];
-            window.sample[1].hitfinish = window.sounds['hitsounds/normal-hitfinish.ogg'];
-            window.game.sample[1].hitclap = window.sounds['hitsounds/normal-hitclap.ogg'];
-            window.game.sample[1].slidertick = window.sounds['hitsounds/normal-slidertick.ogg'];
-            window.game.sample[2].hitnormal = window.sounds['hitsounds/soft-hitnormal.ogg'];
-            window.game.sample[2].hitwhistle = window.sounds['hitsounds/soft-hitwhistle.ogg'];
-            window.game.sample[2].hitfinish = window.sounds['hitsounds/soft-hitfinish.ogg'];
-            window.game.sample[2].hitclap = window.sounds['hitsounds/soft-hitclap.ogg'];
-            window.game.sample[2].slidertick = window.sounds['hitsounds/soft-slidertick.ogg'];
-            window.game.sample[3].hitnormal = window.sounds['hitsounds/drum-hitnormal.ogg'];
-            window.game.sample[3].hitwhistle = window.sounds['hitsounds/drum-hitwhistle.ogg'];
-            window.game.sample[3].hitfinish = window.sounds['hitsounds/drum-hitfinish.ogg'];
-            window.game.sample[3].hitclap = window.sounds['hitsounds/drum-hitclap.ogg'];
-            window.game.sample[3].slidertick = window.sounds['hitsounds/drum-slidertick.ogg'];
-            window.game.sampleComboBreak = window.sounds['hitsounds/combobreak.ogg'];
-            window.game.sampleSectionFail = window.sounds['hitsounds/sectionfail.ogg'];
-            window.soundReady = true;
-            document.getElementById("sound-progress").classList.add("finished");
-            document.body.classList.add("sound-ready");
-        };
+        if (window.sounds) {
+            window.sounds.whenLoaded = function(){
+                if (!window.game) window.game = {};
+                if (!window.game.sample) window.game.sample = [{}, {}, {}, {}];
+                
+                window.game.sample[1].hitnormal = window.sounds['hitsounds/normal-hitnormal.ogg'];
+                window.game.sample[1].hitwhistle = window.sounds['hitsounds/normal-hitwhistle.ogg'];
+                window.game.sample[1].hitfinish = window.sounds['hitsounds/normal-hitfinish.ogg'];
+                window.game.sample[1].hitclap = window.sounds['hitsounds/normal-hitclap.ogg'];
+                window.game.sample[1].slidertick = window.sounds['hitsounds/normal-slidertick.ogg'];
+                window.game.sample[2].hitnormal = window.sounds['hitsounds/soft-hitnormal.ogg'];
+                window.game.sample[2].hitwhistle = window.sounds['hitsounds/soft-hitwhistle.ogg'];
+                window.game.sample[2].hitfinish = window.sounds['hitsounds/soft-hitfinish.ogg'];
+                window.game.sample[2].hitclap = window.sounds['hitsounds/soft-hitclap.ogg'];
+                window.game.sample[2].slidertick = window.sounds['hitsounds/soft-slidertick.ogg'];
+                window.game.sample[3].hitnormal = window.sounds['hitsounds/drum-hitnormal.ogg'];
+                window.game.sample[3].hitwhistle = window.sounds['hitsounds/drum-hitwhistle.ogg'];
+                window.game.sample[3].hitfinish = window.sounds['hitsounds/drum-hitfinish.ogg'];
+                window.game.sample[3].hitclap = window.sounds['hitsounds/drum-hitclap.ogg'];
+                window.game.sample[3].slidertick = window.sounds['hitsounds/drum-slidertick.ogg'];
+                window.game.sampleComboBreak = window.sounds['hitsounds/combobreak.ogg'];
+                window.game.sampleSectionFail = window.sounds['hitsounds/sectionfail.ogg'];
+                
+                window.soundReady = true;
+                const soundProgress = document.getElementById("sound-progress");
+                if (soundProgress) soundProgress.classList.add("finished");
+                document.body.classList.add("sound-ready");
+            };
+            
+            window.sounds.load(sample);
+        }
         
-        window.sounds.load(sample);
-        
-        PIXI.Sprite.prototype.bringToFront = function() {
-            if (this.parent) {
-                var parent = this.parent;
-                parent.removeChild(this);
-                parent.addChild(this);
-            }
+        if (PIXI && PIXI.Sprite) {
+            PIXI.Sprite.prototype.bringToFront = function() {
+                if (this.parent) {
+                    const parent = this.parent;
+                    parent.removeChild(this);
+                    parent.addChild(this);
+                }
+            };
         }
         
         window.scriptReady = true;
-        document.getElementById("script-progress").classList.add("finished");
+        const scriptProgress = document.getElementById("script-progress");
+        if (scriptProgress) scriptProgress.classList.add("finished");
         document.body.classList.add("script-ready");
+        
+        console.log('Processing early defines...');
+        if (window.__earlyDefines && window.__earlyDefines.length > 0) {
+            console.log(`Processing ${window.__earlyDefines.length} early defines`);
+            for (const item of window.__earlyDefines) {
+                try {
+                    const [type, args] = item;
+                    if (type === 'define' && window.define) {
+                        if (args.length === 1) window.define(args[0]);
+                        else if (args.length === 2) window.define(args[0], args[1]);
+                        else if (args.length === 3) window.define(args[0], args[1], args[2]);
+                    }
+                } catch(e) {
+                    console.warn('Failed to process early define:', e);
+                }
+            }
+        }
+        
+        delete window.__earlyDefines;
+        delete window.__earlyRequires;
+        
+        if (originalDefine) window.define = originalDefine;
+        if (originalRequire) window.require = originalRequire;
         
         console.log('Loading game modules...');
         
-        require(['osu', 'underscore', 'sound', 'playback'], function(Osu, _, sounds, Playback) {
+        req(['osu', 'underscore', 'sound', 'playback'], function(Osu, _, sounds, Playback) {
             console.log('Game modules loaded!');
             
             window.Osu = Osu;
             window.Playback = Playback;
+            window._ = _;
             window.AudioContext = window.AudioContext || window.webkitAudioContext;
             
-            window.game = {
-                window: window,
-                stage: null,
-                scene: null,
-                updatePlayerActions: null,
-                backgroundDimRate: 0.7,
-                backgroundBlurRate: 0.0,
-                cursorSize: 1.0,
-                showhwmouse: false,
-                snakein: true,
-                snakeout: true,
-                masterVolume: 0.7,
-                effectVolume: 1.0,
-                musicVolume: 1.0,
-                beatmapHitsound: true,
-                globalOffset: 0,
-                allowMouseButton: true,
-                allowMouseScroll: true,
-                K1keycode: 90,
-                K2keycode: 88,
-                ESCkeycode: 27,
-                ESC2keycode: 27,
-                CTRLkeycode: 17,
-                autoplay: false,
-                relax: false,
-                autopilot: false,
-                nightcore: false,
-                daycore: false,
-                doubletime: false,
-                halftime: false,
-                hardrock: false,
-                easy: false,
-                hidden: false,
-                suddendeath: false,
-                nofail: false,
-                mirror: false,
-                customSpeed: 1.0,
-                useCustomSpeed: false,
-                hideNumbers: false,
-                hideGreat: false,
-                hideFollowPoints: false,
-                enableHPDrain: true,
-                showFailAnimation: true,
-                mobileMode: 'auto',
-                mobileSensitivity: 1.0,
-                mouseX: 0,
-                mouseY: 0,
-                mouse: null,
-                K1down: false,
-                K2down: false,
-                M1down: false,
-                M2down: false,
-                down: false,
-                finished: false,
-                failed: false,
-                sample: [{}, {}, {}, {}],
-                sampleSet: 1
-            };
+            if (!window.game) {
+                window.game = {
+                    window: window,
+                    stage: null,
+                    scene: null,
+                    updatePlayerActions: null,
+                    backgroundDimRate: 0.7,
+                    backgroundBlurRate: 0.0,
+                    cursorSize: 1.0,
+                    showhwmouse: false,
+                    snakein: true,
+                    snakeout: true,
+                    masterVolume: 0.7,
+                    effectVolume: 1.0,
+                    musicVolume: 1.0,
+                    beatmapHitsound: true,
+                    globalOffset: 0,
+                    allowMouseButton: true,
+                    allowMouseScroll: true,
+                    K1keycode: 90,
+                    K2keycode: 88,
+                    ESCkeycode: 27,
+                    ESC2keycode: 27,
+                    CTRLkeycode: 17,
+                    autoplay: false,
+                    relax: false,
+                    autopilot: false,
+                    nightcore: false,
+                    daycore: false,
+                    doubletime: false,
+                    halftime: false,
+                    hardrock: false,
+                    easy: false,
+                    hidden: false,
+                    suddendeath: false,
+                    nofail: false,
+                    mirror: false,
+                    customSpeed: 1.0,
+                    useCustomSpeed: false,
+                    hideNumbers: false,
+                    hideGreat: false,
+                    hideFollowPoints: false,
+                    enableHPDrain: true,
+                    showFailAnimation: true,
+                    mobileMode: 'auto',
+                    mobileSensitivity: 1.0,
+                    mouseX: 0,
+                    mouseY: 0,
+                    mouse: null,
+                    K1down: false,
+                    K2down: false,
+                    M1down: false,
+                    M2down: false,
+                    down: false,
+                    finished: false,
+                    failed: false,
+                    sample: [{}, {}, {}, {}],
+                    sampleSet: 1
+                };
+            }
             
             window.currentFrameInterval = 16;
             
@@ -247,9 +283,6 @@ window.beatmaplistLoadedCallback = async function() {
                 window.gamesettings.loadToGame();
             }
             
-            window.skinReady = false;
-            window.soundReady = false;
-            window.scriptReady = false;
             window.game.stage = new PIXI.Container();
             window.game.cursor = null;
             
@@ -260,7 +293,9 @@ window.beatmaplistLoadedCallback = async function() {
             }
         }, function(err) {
             console.error('Failed to load game modules:', err);
-            alert('Failed to load game. Please refresh the page.');
+            if (err.requireModules) {
+                console.error('Missing modules:', err.requireModules);
+            }
         });
         
         window.liked_sid_set = new Set();
@@ -274,15 +309,24 @@ window.beatmaplistLoadedCallback = async function() {
                     window.liked_sid_set = new Set(parsed);
                 }
             }
-        } catch(e) {}
+        } catch(e) {
+            console.log('No saved favorites');
+        }
         
         if (window.liked_sid_set_callbacks) {
-            window.liked_sid_set_callbacks.forEach(cb => cb());
+            window.liked_sid_set_callbacks.forEach(cb => {
+                try {
+                    cb();
+                } catch(e) {}
+            });
             window.liked_sid_set_callbacks = [];
         }
         
     } catch (error) {
         console.error('Failed to load game:', error);
-        alert('Game loading failed. Please refresh the page.');
+        
+        const scriptProgress = document.getElementById("script-progress");
+        if (scriptProgress) scriptProgress.classList.add("finished");
+        document.body.classList.add("script-ready");
     }
 };
