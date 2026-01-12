@@ -86,11 +86,8 @@ const startPreview = box => {
 };
 
 const logToServer = async message => {
-    try {
-        await fetch(`https://api.osugame.online/log/?msg=${encodeURIComponent(message)}`);
-    } catch (err) {
-        console.log('Download log:', message);
-    }
+    console.log('Download:', message);
+    // Removed fetch call due to CORS restrictions on GitHub Pages
 };
 
 const downloadStatus = new Map();
