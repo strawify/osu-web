@@ -24,27 +24,54 @@ window.beatmaplistLoadedCallback = async function() {
     // Save original define/require if they exist
     const originalDefine = window.define;
     const originalRequire = window.require;
+    const originalRequirejs = window.requirejs;
     
-    // Temporarily override to prevent early execution
-    window.define = function() {
-        if (!window.__earlyDefines) window.__earlyDefines = [];
+    // Temporarily clear to prevent conflicts
+    window.define = undefined;
+    window.require = undefined;
+    window.requirejs = undefined;
+    
+    // Create a queue for early define calls
+    window.__earlyDefines = [];
+    window.__tempDefine = function() {
         window.__earlyDefines.push(arguments);
-        console.log('Caught early define() call, queuing for later');
+        console.log('Queued early define() call');
     };
-    window.define.amd = {};
+    window.__tempDefine.amd = {};
+    window.define = window.__tempDefine;
     
-    window.require = function() {
-        console.log('Caught early require() call, ignoring');
+    window.__tempRequire = function() {
+        console.log('Early require() call queued', arguments);
+        window.__earlyDefines.push(['early-require', arguments]);
     };
+    window.require = window.__tempRequire;
     
     try {
         // Step 1: Load RequireJS
         console.log('Loading RequireJS...');
         await loadScript('scripts/lib/require.js');
         
-        // Step 2: Configure RequireJS
+        // Wait a moment for RequireJS to initialize
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Step 2: Check if RequireJS loaded properly
+        if (typeof requirejs === 'undefined' && typeof require === 'undefined') {
+            console.error('RequireJS failed to load');
+            throw new Error('RequireJS failed to load');
+        }
+        
+        // Use requirejs if available, otherwise use require
+        const req = window.requirejs || window.require;
+        
+        if (typeof req.config !== 'function') {
+            console.error('require.config is not a function', req);
+            throw new Error('RequireJS not properly initialized');
+        }
+        
         console.log('Configuring RequireJS...');
-        require.config({
+        
+        // Configure RequireJS
+        req.config({
             baseUrl: 'scripts',
             paths: {
                 'osu': 'osu',
@@ -83,7 +110,40 @@ window.beatmaplistLoadedCallback = async function() {
             skipDataMain: true
         });
         
-        // Step 3: Load other dependencies
+        // Set global require/define to the RequireJS versions
+        if (window.requirejs) {
+            window.require = window.requirejs;
+            window.define = window.requirejs.define;
+        }
+        
+        // Step 3: Process any early define() calls
+        if (window.__earlyDefines && window.__earlyDefines.length > 0) {
+            console.log(`Processing ${window.__earlyDefines.length} early define() calls...`);
+            window.__earlyDefines.forEach((args, i) => {
+                try {
+                    // Skip the special 'early-require' marker
+                    if (args[0] === 'early-require') {
+                        console.log('Skipping early require call');
+                        return;
+                    }
+                    
+                    if (args.length === 1) {
+                        define(args[0]);
+                    } else if (args.length === 2) {
+                        define(args[0], args[1]);
+                    } else if (args.length === 3) {
+                        define(args[0], args[1], args[2]);
+                    }
+                } catch(e) {
+                    console.warn(`Failed to process early define #${i}:`, e);
+                }
+            });
+            delete window.__earlyDefines;
+            delete window.__tempDefine;
+            delete window.__tempRequire;
+        }
+        
+        // Step 4: Load other dependencies
         console.log('Loading dependencies...');
         
         const dependencies = [
@@ -104,7 +164,7 @@ window.beatmaplistLoadedCallback = async function() {
             }
         }
         
-        // Step 4: Setup sound system
+        // Step 5: Setup sound system
         console.log('Setting up sound system...');
         if (typeof createjs !== 'undefined' && createjs.Sound) {
             window.sounds = {
@@ -152,33 +212,14 @@ window.beatmaplistLoadedCallback = async function() {
             };
         }
         
-        // Step 5: Process any early define() calls
-        if (window.__earlyDefines && window.__earlyDefines.length > 0) {
-            console.log(`Processing ${window.__earlyDefines.length} early define() calls...`);
-            window.__earlyDefines.forEach((args, i) => {
-                try {
-                    if (args.length === 1) {
-                        define(args[0]);
-                    } else if (args.length === 2) {
-                        define(args[0], args[1]);
-                    } else if (args.length === 3) {
-                        define(args[0], args[1], args[2]);
-                    }
-                } catch(e) {
-                    console.warn(`Failed to process early define #${i}:`, e);
-                }
-            });
-            delete window.__earlyDefines;
-        }
-        
         // Step 6: Load initgame
         console.log('Loading initgame...');
-        require(['initgame'], function() {
+        
+        // Use the correct require function
+        const requireFunc = window.requirejs || window.require;
+        
+        requireFunc(['initgame'], function() {
             console.log('Game initialization complete!');
-            
-            // Restore original define/require if needed
-            if (originalDefine) window.define = originalDefine;
-            if (originalRequire) window.require = originalRequire;
             
             // Setup beatmap menu if function exists
             if (typeof window.setupBeatmapMenu === 'function') {
@@ -188,6 +229,15 @@ window.beatmaplistLoadedCallback = async function() {
             console.error('Failed to load initgame:', err);
             if (err.requireModules) {
                 console.error('Failed modules:', err.requireModules);
+                
+                // Try to load failed modules individually
+                err.requireModules.forEach(function(module) {
+                    console.log('Attempting to load', module, 'directly...');
+                    loadScript('scripts/' + module + '.js', function() {
+                        console.log('Loaded', module, 'directly, retrying initgame...');
+                        requireFunc(['initgame']);
+                    });
+                });
             }
         });
         
@@ -230,6 +280,17 @@ window.beatmaplistLoadedCallback = async function() {
         
     } catch (error) {
         console.error('Failed to load game:', error);
-        alert('Failed to load game. Please refresh the page.');
+        
+        // Try fallback loading
+        console.log('Attempting fallback loading...');
+        try {
+            // Directly load essential scripts
+            await loadScript('scripts/lib/pixi.min.js');
+            await loadScript('scripts/initgame.js');
+            console.log('Fallback loading successful');
+        } catch (fallbackError) {
+            console.error('Fallback loading failed:', fallbackError);
+            alert('Failed to load game. Please refresh the page or check console for errors.');
+        }
     }
 };
