@@ -1,75 +1,81 @@
 function launchOSU(osu, beatmapid, version){
-    // select track
     let trackid = -1;
-    // mode can be 0 or undefined
-    for (let i=0; i<osu.tracks.length; ++i)
-        if (osu.tracks[i].metadata.BeatmapID == beatmapid || !osu.tracks[i].mode && osu.tracks[i].metadata.Version == version)
+    
+    for (let i=0; i<osu.tracks.length; ++i) {
+        if (osu.tracks[i].metadata.BeatmapID == beatmapid || (!osu.tracks[i].mode && osu.tracks[i].metadata.Version == version)) {
             trackid = i;
-    console.log("launching", beatmapid, version)
+            break;
+        }
+    }
+    
+    console.log("Launching track:", beatmapid, version);
+    
     if (trackid == -1) {
-        if (log_to_server) log_to_server("unmatch " + beatmapid + " " + version);
-        console.error("no suck track");
-        console.log("available tracks are:");
-        for (let i=0; i<osu.tracks.length; ++i)
-            console.log(osu.tracks[i].metadata.BeatmapID, osu.tracks[i].mode, osu.tracks[i].metadata.Version);
+        console.error("Track not found");
+        console.log("Available tracks:", osu.tracks.map(t => ({id: t.metadata.BeatmapID, version: t.metadata.Version})));
+        showToast('Track not found in beatmap', 'error');
         return;
     }
-    // prevent launching multiple times
-    if (window.app) return;
-    console.log("launching PIXI app");
-    // launch PIXI app
+    
+    if (window.app) {
+        console.log('Game already running');
+        return;
+    }
+    
+    console.log("Creating PIXI app");
+    
     let app = window.app = new PIXI.Application({
         width: window.innerWidth,
         height: window.innerHeight,
-        resolution: (window.game.overridedpi? window.game.dpiscale: window.devicePixelRatio) || 1,
-        autoResize: true,
+        backgroundColor: 0x111111,
+        antialias: true
     });
-    app.renderer.autoResize = true;
-    app.renderer.backgroundColor = 0x111111;
-
-    // remember where the page is scrolled to
-    let scrollTop = document.body.scrollTop;
-    // save alert function and replace with silent alert to prevent pop-up in game
+    
     let defaultAlert = window.alert;
-    window.alert = function(msg){console.log("IN-GAME ALERT " + msg);};
-    // get ready for gaming
+    window.alert = function(msg) {
+        console.log("IN-GAME ALERT:", msg);
+    };
+    
     document.addEventListener("contextmenu", function(e) {
         e.preventDefault();
         return false;
     });
+    
     document.body.classList.add("gaming");
-    // update game settings
+    
     if (window.gamesettings) {
         window.gamesettings.refresh();
         window.gamesettings.loadToGame();
     }
-
-    // load cursor
-    if (!game.showhwmouse || game.autoplay) {
-        game.cursor = new PIXI.Sprite(Skin["cursor.png"]);
-        game.cursor.anchor.x = game.cursor.anchor.y = 0.5;
-        game.cursor.scale.x = game.cursor.scale.y = 0.3 * game.cursorSize;
-        game.stage.addChild(game.cursor);
+    
+    if (!window.game.showhwmouse || window.game.autoplay) {
+        window.game.cursor = new PIXI.Sprite(window.Skin ? window.Skin["cursor.png"] : PIXI.Texture.WHITE);
+        window.game.cursor.anchor.x = window.game.cursor.anchor.y = 0.5;
+        window.game.cursor.scale.x = window.game.cursor.scale.y = 0.3 * window.game.cursorSize;
+        window.game.stage.addChild(window.game.cursor);
     }
-
-    // switch page to game view
-    if (game.autofullscreen)
+    
+    if (window.game.autofullscreen) {
         document.documentElement.requestFullscreen();
+    }
+    
     let pGameArea = document.getElementById("game-area");
-    var pMainPage = document.getElementById("main-page");
-    var pNav = document.getElementById("main-nav");
+    let pMainPage = document.getElementById("main-page");
+    let pNav = document.getElementById("main-nav");
+    
     pGameArea.appendChild(app.view);
-    if (game.autoplay) {
+    
+    if (window.game.autoplay) {
         pGameArea.classList.remove("shownomouse");
         pGameArea.classList.remove("showhwmousemedium");
         pGameArea.classList.remove("showhwmousesmall");
         pGameArea.classList.remove("showhwmousetiny");
     }
-    else if (game.showhwmouse) {
+    else if (window.game.showhwmouse) {
         pGameArea.classList.remove("shownomouse");
-        if (game.cursorSize < 0.65)
+        if (window.game.cursorSize < 0.65)
             pGameArea.classList.add("showhwmousetiny");
-        else if (game.cursorSize < 0.95)
+        else if (window.game.cursorSize < 0.95)
             pGameArea.classList.add("showhwmousesmall");
         else
             pGameArea.classList.add("showhwmousemedium");
@@ -80,80 +86,110 @@ function launchOSU(osu, beatmapid, version){
         pGameArea.classList.remove("showhwmousesmall");
         pGameArea.classList.remove("showhwmousetiny");
     }
+    
     pMainPage.setAttribute("hidden","");
-    pNav.setAttribute("style","display: none");
+    if (pNav) pNav.setAttribute("style","display: none");
     pGameArea.removeAttribute("hidden");
-
-    var gameLoop;
-    // set quit callback
+    
+    window.game.scene = new window.Playback(window.game, osu, osu.tracks[trackid]);
+    app.stage.addChild(window.game.scene.gamefield);
+    
+    window.game.scene.load();
+    
+    window.game.scene.onload = function() {
+        console.log("Playback loaded, starting game loop");
+    };
+    
     window.quitGame = function() {
-        // this shouldn't be called before playback is cleaned up
-        // restore webpage state
+        if (window.game.scene && window.game.scene.osu) {
+            window.game.scene.osu.audio.stop();
+        }
+        
         pGameArea.setAttribute("hidden", "");
         pMainPage.removeAttribute("hidden");
-        pNav.removeAttribute("style");
+        if (pNav) pNav.removeAttribute("style");
         document.body.classList.remove("gaming");
-        // restore page scroll position
-        document.body.scrollTop = scrollTop;
-        // restore alert function
+        
         window.alert = defaultAlert;
-        // TODO application level clean up
-        if (game.cursor) {
-            game.stage.removeChild(game.cursor);
-            game.cursor.destroy();
-            game.cursor = null;
+        
+        if (window.game.cursor) {
+            window.game.stage.removeChild(window.game.cursor);
+            window.game.cursor.destroy();
+            window.game.cursor = null;
         }
-        window.app.destroy(true, {children: true, texture: false});
-        window.app = null;
-        gameLoop = null;
-        window.cancelAnimationFrame(window.animationRequestID);
-    }
-
-    // load playback
-    var playback = new Playback(window.game, osu, osu.tracks[trackid]);
-    game.scene = playback;
-    playback.onload = function() {
-        // stop beatmap preview
+        
+        if (window.app) {
+            window.app.destroy(true, {children: true, texture: false});
+            window.app = null;
+        }
+        
+        if (window.game.scene) {
+            window.game.scene = null;
+        }
+        
         let audios = document.getElementsByTagName("audio");
-        for (let i=0; i<audios.length; ++i)
-            if (audios[i].softstop)
-                audios[i].softstop();
-    }
-    playback.load(); // load audio
-
-    // start main loop
-    gameLoop = function(timestamp) {
-        if (game.scene) {
-            game.scene.render(timestamp);
+        for (let i=0; i<audios.length; ++i) {
+            if (audios[i].softstop) audios[i].softstop();
+            audios[i].remove();
         }
-        if (game.cursor) {
-            // Handle cursor
-            game.cursor.x = game.mouseX / 512 * gfx.width + gfx.xoffset;
-            game.cursor.y = game.mouseY / 384 * gfx.height + gfx.yoffset;
-            game.cursor.bringToFront();
+        
+        console.log("Game quit successfully");
+    };
+    
+    app.ticker.add(function(delta) {
+        if (!window.game.paused && !window.game.failed && window.game.scene) {
+            const time = window.game.scene.osu ? window.game.scene.osu.audio.getPosition() * 1000 : 0;
+            window.game.scene.update(time);
         }
-        app.renderer.render(game.stage);
-        window.animationRequestID = window.requestAnimationFrame(gameLoop);
+        
+        if (window.game.cursor && window.gfx) {
+            window.game.cursor.x = window.game.mouseX / 512 * window.gfx.width + window.gfx.xoffset;
+            window.game.cursor.y = window.game.mouseY / 384 * window.gfx.height + window.gfx.yoffset;
+            window.game.cursor.bringToFront();
+        }
+    });
+    
+    if (typeof addPlayHistory === 'function') {
+        const track = osu.tracks[trackid];
+        addPlayHistory(track.metadata.BeatmapSetID, track.metadata.Title, track.metadata.Artist, track.metadata.Creator, track.difficulty.star);
     }
-    window.animationRequestID = window.requestAnimationFrame(gameLoop);
 }
 
 function launchGame(osublob, beatmapid, version) {
-    // unzip osz & parse beatmap
+    if (!window.Osu) {
+        console.error("Osu class not loaded");
+        showToast('Game not ready yet. Please wait...', 'error');
+        return;
+    }
+    
+    if (!window.zip || !window.zip.fs) {
+        console.error("zip.js not loaded");
+        showToast('Game libraries not loaded', 'error');
+        return;
+    }
+    
+    console.log("Unzipping beatmap...");
+    
     let fs = new zip.fs.FS();
     fs.root.importBlob(osublob,
         function(){
-            let osu = new Osu(fs.root);
+            console.log("Beatmap unzipped, parsing...");
+            let osu = new window.Osu(fs.root);
             osu.ondecoded = function() {
+                console.log("Beatmap parsed, launching...");
                 launchOSU(osu, beatmapid, version);
-            }
-            osu.onerror = function() {
-                console.error("osu parse error");
-            }
+            };
+            osu.onerror = function(err) {
+                console.error("Beatmap parse error:", err);
+                showToast('Failed to parse beatmap', 'error');
+            };
             osu.load();
         },
         function(err) {
-            console.error("unzip failed");
+            console.error("Unzip failed:", err);
+            showToast('Failed to extract beatmap', 'error');
         }
     );
 }
+
+window.launchGame = launchGame;
