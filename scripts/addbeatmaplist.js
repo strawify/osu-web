@@ -74,6 +74,7 @@ const showDifficultyMenu = (box, event) => {
     
     const menu = document.createElement('div');
     menu.className = 'difficulty-selection-menu';
+    menu.style.zIndex = '1000';
     currentDifficultyMenu = menu;
     
     const difficulties = box.data
@@ -145,27 +146,37 @@ const showDifficultyMenu = (box, event) => {
     
     box.appendChild(menu);
     
+    // Position the menu above if it would go off-screen
+    const rect = box.getBoundingClientRect();
+    const menuHeight = difficulties.length * 60 + 20;
+    const viewportHeight = window.innerHeight;
+    
+    if (rect.bottom + menuHeight > viewportHeight - 20) {
+        menu.style.top = 'auto';
+        menu.style.bottom = '100%';
+        menu.style.borderRadius = '16px 16px 0 0';
+        menu.style.boxShadow = '0 -12px 32px rgba(0, 0, 0, 0.5)';
+    } else {
+        menu.style.bottom = 'auto';
+        menu.style.top = '100%';
+        menu.style.borderRadius = '0 0 16px 16px';
+        menu.style.boxShadow = '0 12px 32px rgba(0, 0, 0, 0.5)';
+    }
+    
     const closeMenu = (e) => {
         if (menu && !menu.contains(e.target) && e.target !== box && !box.contains(e.target)) {
             menu.remove();
             currentDifficultyMenu = null;
             box.classList.remove('has-diff-menu');
             document.removeEventListener('click', closeMenu);
+            document.removeEventListener('scroll', closeMenu);
         }
     };
     
     setTimeout(() => {
         document.addEventListener('click', closeMenu);
+        document.addEventListener('scroll', closeMenu, { passive: true });
     }, 10);
-    
-    const rect = box.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
-    
-    if (rect.bottom + menu.offsetHeight > viewportHeight - 20) {
-        menu.style.bottom = '100%';
-        menu.style.top = 'auto';
-        menu.style.borderRadius = '16px 16px 0 0';
-    }
 };
 
 const BeatmapManager = {
@@ -188,10 +199,20 @@ const BeatmapManager = {
 
         box.like = async e => {
             e.stopPropagation();
+            
+            if (!window.liked_sid_set) {
+                window.liked_sid_set = new Set();
+            }
+            
             window.liked_sid_set.add(box.sid);
             
             try {
-                await localforage.setItem("likedsidset", window.liked_sid_set);
+                if (typeof localforage !== 'undefined') {
+                    await localforage.setItem("likedsidset", window.liked_sid_set);
+                } else {
+                    localStorage.setItem("likedsidset", JSON.stringify(Array.from(window.liked_sid_set)));
+                }
+                
                 icon.classList.remove("icon-heart-empty");
                 icon.classList.add("icon-heart");
                 icon.onclick = box.undoLike;
@@ -204,10 +225,18 @@ const BeatmapManager = {
 
         box.undoLike = async e => {
             e.stopPropagation();
+            
+            if (!window.liked_sid_set) return;
+            
             window.liked_sid_set.delete(box.sid);
             
             try {
-                await localforage.setItem("likedsidset", window.liked_sid_set);
+                if (typeof localforage !== 'undefined') {
+                    await localforage.setItem("likedsidset", window.liked_sid_set);
+                } else {
+                    localStorage.setItem("likedsidset", JSON.stringify(Array.from(window.liked_sid_set)));
+                }
+                
                 icon.classList.remove("icon-heart");
                 icon.classList.add("icon-heart-empty");
                 icon.onclick = box.like;
@@ -220,10 +249,34 @@ const BeatmapManager = {
         if (window.liked_sid_set) {
             box.initLike();
         } else {
-            if (!window.liked_sid_set_callbacks) {
-                window.liked_sid_set_callbacks = [];
-            }
+            window.liked_sid_set = new Set();
+            window.liked_sid_set_callbacks = window.liked_sid_set_callbacks || [];
+            
+            const loadLikedSet = async () => {
+                try {
+                    if (typeof localforage !== 'undefined') {
+                        const savedSet = await localforage.getItem("likedsidset");
+                        if (savedSet && savedSet.size) {
+                            window.liked_sid_set = savedSet;
+                        }
+                    } else {
+                        const saved = localStorage.getItem("likedsidset");
+                        if (saved) {
+                            window.liked_sid_set = new Set(JSON.parse(saved));
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to load liked set:", err);
+                }
+                
+                if (window.liked_sid_set_callbacks) {
+                    window.liked_sid_set_callbacks.forEach(cb => cb());
+                    window.liked_sid_set_callbacks = [];
+                }
+            };
+            
             window.liked_sid_set_callbacks.push(box.initLike);
+            loadLikedSet();
         }
     },
 
@@ -246,6 +299,7 @@ const BeatmapManager = {
         box.sid = map.sid;
         box.className = "beatmapbox";
         box.dataset.sid = map.sid;
+        box.style.position = 'relative';
 
         const cover = document.createElement("img");
         cover.className = "beatmapcover";
