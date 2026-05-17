@@ -17,12 +17,29 @@ function launchOSU(osu, beatmapid, version){
     // prevent launching multiple times
     if (window.app) return;
     console.log("launching PIXI app");
+
+    // ── Low-end device optimizations ──────────────────────────────────────
+    var isLowEnd = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)
+                || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // Force canvas renderer on low-end if WebGL is slow
+    var rendererType = PIXI.utils.isWebGLSupported()
+        ? PIXI.RENDERER_TYPE.WEBGL
+        : PIXI.RENDERER_TYPE.CANVAS;
+
+    // Limit pixel ratio on mobile/low-end to avoid excessive fill rate
+    var devicePR = (window.game.overridedpi ? window.game.dpiscale : window.devicePixelRatio) || 1;
+    if (isLowEnd && devicePR > 1.5) devicePR = 1.5;
+
     // launch PIXI app
     let app = window.app = new PIXI.Application({
         width: window.innerWidth,
         height: window.innerHeight,
-        resolution: (window.game.overridedpi? window.game.dpiscale: window.devicePixelRatio) || 1,
+        resolution: devicePR,
         autoResize: true,
+        antialias: !isLowEnd,
+        powerPreference: isLowEnd ? 'low-power' : 'high-performance',
+        forceCanvas: rendererType === PIXI.RENDERER_TYPE.CANVAS,
     });
     app.renderer.autoResize = true;
     app.renderer.backgroundColor = 0x111111;
