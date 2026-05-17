@@ -9,8 +9,6 @@ define([], function() {
         };
         var hit = upcoming.find(inUpcoming(click));
         if (!hit && game.mouse) {
-            // if not hit with traditional (lagged) cursor position,
-            // try predicted position with more tolerance
             let res = game.mouse(new Date().getTime());
             res.time = click.time;
             hit = upcoming.find(inUpcoming_grace(res));
@@ -34,7 +32,7 @@ define([], function() {
                 hit.score < 0
                 && dx*dx + dy*dy < playback.circleRadius * playback.circleRadius
                 && Math.abs(click.time - hit.time) < playback.MehTime);
-            }
+        }
     }
     var inUpcoming_grace = function (predict){
         return function (hit){
@@ -44,8 +42,7 @@ define([], function() {
             let result = hit.score < 0
                 && dx*dx + dy*dy < r * r
                 && Math.abs(predict.time - hit.time) < playback.MehTime;
-            if (result)
-                console.log("grace hit");
+            if (result) console.log("grace hit");
             return result;
         }
     }
@@ -61,32 +58,30 @@ define([], function() {
                 lasttime: 0
             }
         }
+
         playback.game.updatePlayerActions = function(time){
             if (playback.autoplay) {
                 const spinRadius = 60;
                 let cur = playback.auto.currentObject;
-                // auto move cursor
-                if (playback.game.down && cur) { // already on an object
+                if (playback.game.down && cur) {
                     if (cur.type == "circle" || time > cur.endTime) {
-                        // release cursor
                         playback.game.down = false;
                         playback.auto.currentObject = null;
                         playback.auto.lasttime = time;
                         playback.auto.lastx = playback.game.mouseX;
                         playback.auto.lasty = playback.game.mouseY;
                     }
-                    else if (cur.type == "slider") { // follow slider ball
+                    else if (cur.type == "slider") {
                         playback.game.mouseX = cur.ball.x || cur.x;
                         playback.game.mouseY = cur.ball.y || cur.y;
                     }
-                    else { // spin
+                    else {
                         let currentAngle = Math.atan2(playback.game.mouseY - cur.y, playback.game.mouseX - cur.x);
                         currentAngle += 0.8;
                         playback.game.mouseY = cur.y + spinRadius * Math.sin(currentAngle);
                         playback.game.mouseX = cur.x + spinRadius * Math.cos(currentAngle);
                     }
                 }
-                // looking for next target
                 cur = playback.auto.currentObject;
                 while (playback.auto.curid < playback.hits.length && playback.hits[playback.auto.curid].time < time) {
                     if (playback.hits[playback.auto.curid].score < 0) {
@@ -104,37 +99,61 @@ define([], function() {
                     playback.auto.currentObject = cur;
                 }
                 if (!cur || cur.time > time + playback.approachTime) {
-                    // no object to click, just rest
                     playback.auto.lasttime = time;
                     return;
                 }
                 if (!playback.game.down) {
-                    // move toward the object
                     let targX = cur.x;
                     let targY = cur.y;
-                    if (cur.type == "spinner")
-                        targY -= spinRadius;
+                    if (cur.type == "spinner") targY -= spinRadius;
                     let t = (time - playback.auto.lasttime) / (cur.time - playback.auto.lasttime);
                     t = Math.max(0, Math.min(1, t));
-                    t = 0.5-Math.sin((Math.pow(1-t,1.5)-0.5)*Math.PI)/2; // easing
+                    t = 0.5-Math.sin((Math.pow(1-t,1.5)-0.5)*Math.PI)/2;
                     playback.game.mouseX = t * targX + (1-t) * playback.auto.lastx;
                     playback.game.mouseY = t * targY + (1-t) * playback.auto.lasty;
-
                     let diff = time - cur.time;
                     if (diff > -8) {
-                        // click the object
                         playback.game.down = true;
                         checkClickdown();
                     }
                 }
             }
-        };
 
+            // RELAX MOD: auto-click when cursor is over an upcoming hit
+            if (playback.relax && !playback.autoplay) {
+                var upcoming = playback.upcomingHits;
+                var curTime = playback.osu.audio.getPosition() * 1000;
+                var hitFound = false;
+                for (var ri = 0; ri < upcoming.length; ri++) {
+                    var rh = upcoming[ri];
+                    if (rh.score >= 0) continue;
+                    var rdx = playback.game.mouseX - rh.x;
+                    var rdy = playback.game.mouseY - rh.y;
+                    var rInRadius = (rdx*rdx + rdy*rdy) < playback.circleRadius * playback.circleRadius;
+                    var rInTime = Math.abs(curTime - rh.time) < playback.MehTime;
+                    if (rInRadius && rInTime) {
+                        hitFound = true;
+                        if (!playback.game._relaxTriggered) {
+                            playback.game._relaxTriggered = true;
+                            playback.game.down = true;
+                            checkClickdown();
+                        }
+                        break;
+                    }
+                }
+                if (!hitFound) {
+                    playback.game._relaxTriggered = false;
+                    if (!playback.game.M1down && !playback.game.M2down &&
+                        !playback.game.K1down && !playback.game.K2down) {
+                        playback.game.down = false;
+                    }
+                }
+            }
+        };
 
         var movehistory = [{x:512/2, y:384/2, t: new Date().getTime()}];
 
         playback.game.mouse = function(t) {
-            // realtime mouse position prediction algorithm
             let m = movehistory;
             let i = 0;
             while (i<m.length-1 && m[0].t-m[i].t<40 && t-m[i].t<100) i+=1;
@@ -150,81 +169,145 @@ define([], function() {
         var mousemoveCallback = function(e) {
             playback.game.mouseX = (e.clientX - gfx.xoffset) / gfx.width * 512;
             playback.game.mouseY = (e.clientY - gfx.yoffset) / gfx.height * 384;
-            movehistory.unshift({
-                x: playback.game.mouseX,
-                y: playback.game.mouseY,
-                t: new Date().getTime()
-            });
+            movehistory.unshift({ x: playback.game.mouseX, y: playback.game.mouseY, t: new Date().getTime() });
             if (movehistory.length>10) movehistory.pop();
         }
         var mousedownCallback = function(e) {
             mousemoveCallback(e);
-            if (e.button == 0) {
-                if (playback.game.M1down) return;
-                playback.game.M1down = true;
-            }
-            else
-            if (e.button == 2) {
-                if (playback.game.M2down) return;
-                playback.game.M2down = true;
-            }
-            else
-            return;
-            e.preventDefault();
-            e.stopPropagation();
-            playback.game.down = playback.game.K1down || playback.game.K2down
-                              || playback.game.M1down || playback.game.M2down;
+            if (e.button == 0) { if (playback.game.M1down) return; playback.game.M1down = true; }
+            else if (e.button == 2) { if (playback.game.M2down) return; playback.game.M2down = true; }
+            else return;
+            e.preventDefault(); e.stopPropagation();
+            playback.game.down = playback.game.K1down || playback.game.K2down || playback.game.M1down || playback.game.M2down;
             checkClickdown();
         }
         var mouseupCallback = function(e) {
             mousemoveCallback(e);
-            if (e.button == 0) playback.game.M1down = false; else
-            if (e.button == 2) playback.game.M2down = false; else
-            return;
-            e.preventDefault();
-            e.stopPropagation();
-            playback.game.down = playback.game.K1down || playback.game.K2down
-                              || playback.game.M1down || playback.game.M2down;
+            if (e.button == 0) playback.game.M1down = false;
+            else if (e.button == 2) playback.game.M2down = false;
+            else return;
+            e.preventDefault(); e.stopPropagation();
+            playback.game.down = playback.game.K1down || playback.game.K2down || playback.game.M1down || playback.game.M2down;
         }
         var keydownCallback = function(e) {
-            if (e.keyCode == playback.game.K1keycode) {
-                if (playback.game.K1down) return;
-                playback.game.K1down = true;
-            }
-            else
-            if (e.keyCode == playback.game.K2keycode) {
-                if (playback.game.K2down) return;
-                playback.game.K2down = true;
-            }
-            else
-            return;
-            e.preventDefault();
-            e.stopPropagation();
-            playback.game.down = playback.game.K1down || playback.game.K2down
-                              || playback.game.M1down || playback.game.M2down;
+            if (e.keyCode == playback.game.K1keycode) { if (playback.game.K1down) return; playback.game.K1down = true; }
+            else if (e.keyCode == playback.game.K2keycode) { if (playback.game.K2down) return; playback.game.K2down = true; }
+            else return;
+            e.preventDefault(); e.stopPropagation();
+            playback.game.down = playback.game.K1down || playback.game.K2down || playback.game.M1down || playback.game.M2down;
             checkClickdown();
         }
         var keyupCallback = function(e) {
-            if (e.keyCode == playback.game.K1keycode) playback.game.K1down = false; else
-            if (e.keyCode == playback.game.K2keycode) playback.game.K2down = false; else
-            return;
-            e.preventDefault();
-            e.stopPropagation();
-            playback.game.down = playback.game.K1down || playback.game.K2down
-                              || playback.game.M1down || playback.game.M2down;
+            if (e.keyCode == playback.game.K1keycode) playback.game.K1down = false;
+            else if (e.keyCode == playback.game.K2keycode) playback.game.K2down = false;
+            else return;
+            e.preventDefault(); e.stopPropagation();
+            playback.game.down = playback.game.K1down || playback.game.K2down || playback.game.M1down || playback.game.M2down;
         }
 
-        // set eventlisteners
+        // ─── MULTI-TOUCH SUPPORT ──────────────────────────────────────────────
+        var activeTouches = {};
+        var primaryTouchId = null;
+
+        function touchToOsu(touch) {
+            var canvas = window.app ? window.app.view : null;
+            var rect = canvas ? canvas.getBoundingClientRect() : {left:0, top:0};
+            var cx = touch.clientX - rect.left;
+            var cy = touch.clientY - rect.top;
+            return {
+                x: (cx - gfx.xoffset) / gfx.width * 512,
+                y: (cy - gfx.yoffset) / gfx.height * 384
+            };
+        }
+
+        function updateCursorFromTouch(pos) {
+            playback.game.mouseX = pos.x;
+            playback.game.mouseY = pos.y;
+            movehistory.unshift({ x: pos.x, y: pos.y, t: new Date().getTime() });
+            if (movehistory.length > 10) movehistory.pop();
+        }
+
+        var touchstartCallback = function(e) {
+            e.preventDefault();
+            var changed = e.changedTouches;
+            for (var i = 0; i < changed.length; i++) {
+                var t = changed[i];
+                var pos = touchToOsu(t);
+                activeTouches[t.identifier] = { x: pos.x, y: pos.y };
+
+                // Primary touch = cursor mover
+                if (primaryTouchId === null) {
+                    primaryTouchId = t.identifier;
+                    updateCursorFromTouch(pos);
+                }
+
+                // Every finger tap = click at that position
+                var savedX = playback.game.mouseX;
+                var savedY = playback.game.mouseY;
+                playback.game.mouseX = pos.x;
+                playback.game.mouseY = pos.y;
+                playback.game.M1down = true;
+                playback.game.down = true;
+                checkClickdown();
+                // Restore to primary touch position
+                if (primaryTouchId !== null && activeTouches[primaryTouchId]) {
+                    playback.game.mouseX = activeTouches[primaryTouchId].x;
+                    playback.game.mouseY = activeTouches[primaryTouchId].y;
+                }
+            }
+        };
+
+        var touchmoveCallback = function(e) {
+            e.preventDefault();
+            var changed = e.changedTouches;
+            for (var i = 0; i < changed.length; i++) {
+                var t = changed[i];
+                if (!(t.identifier in activeTouches)) continue;
+                var pos = touchToOsu(t);
+                activeTouches[t.identifier] = { x: pos.x, y: pos.y };
+                if (t.identifier === primaryTouchId) {
+                    updateCursorFromTouch(pos);
+                }
+            }
+        };
+
+        var touchendCallback = function(e) {
+            e.preventDefault();
+            var changed = e.changedTouches;
+            for (var i = 0; i < changed.length; i++) {
+                var t = changed[i];
+                delete activeTouches[t.identifier];
+                if (t.identifier === primaryTouchId) {
+                    primaryTouchId = null;
+                    for (var id in activeTouches) {
+                        primaryTouchId = parseInt(id);
+                        updateCursorFromTouch(activeTouches[id]);
+                        break;
+                    }
+                }
+            }
+            if (Object.keys(activeTouches).length === 0) {
+                playback.game.M1down = false;
+                playback.game.down = playback.game.K1down || playback.game.K2down || playback.game.M2down;
+            }
+        };
+
         if (!playback.autoplay) {
             playback.game.window.addEventListener("mousemove", mousemoveCallback);
-            // mouse click handling for gameplay
             if (playback.game.allowMouseButton) {
                 playback.game.window.addEventListener("mousedown", mousedownCallback);
                 playback.game.window.addEventListener("mouseup", mouseupCallback);
             }
-            // keyboard click handling for gameplay
             playback.game.window.addEventListener("keydown", keydownCallback);
             playback.game.window.addEventListener("keyup", keyupCallback);
+
+            // Touch events
+            var touchTarget = document.getElementById("game-area") || playback.game.window;
+            touchTarget.addEventListener("touchstart",  touchstartCallback,  { passive: false });
+            touchTarget.addEventListener("touchmove",   touchmoveCallback,   { passive: false });
+            touchTarget.addEventListener("touchend",    touchendCallback,    { passive: false });
+            touchTarget.addEventListener("touchcancel", touchendCallback,    { passive: false });
+            playback.game._touchTarget = touchTarget;
         }
 
         playback.game.cleanupPlayerActions = function() {
@@ -233,54 +316,32 @@ define([], function() {
             playback.game.window.removeEventListener("mouseup", mouseupCallback);
             playback.game.window.removeEventListener("keydown", keydownCallback);
             playback.game.window.removeEventListener("keyup", keyupCallback);
+            if (playback.game._touchTarget) {
+                playback.game._touchTarget.removeEventListener("touchstart",  touchstartCallback);
+                playback.game._touchTarget.removeEventListener("touchmove",   touchmoveCallback);
+                playback.game._touchTarget.removeEventListener("touchend",    touchendCallback);
+                playback.game._touchTarget.removeEventListener("touchcancel", touchendCallback);
+            }
         }
-
     }
 
-    // https://tc39.github.io/ecma262/#sec-array.prototype.find
     if (!Array.prototype.find) {
         Object.defineProperty(Array.prototype, 'find', {
             value: function(predicate) {
-                // 1. Let O be ? ToObject(this value).
-                if (this == null) {
-                    throw new TypeError('"this" is null or not defined');
-                }
-
+                if (this == null) throw new TypeError('"this" is null or not defined');
                 var o = Object(this);
-
-                // 2. Let len be ? ToLength(? Get(O, "length")).
                 var len = o.length >>> 0;
-
-                // 3. If IsCallable(predicate) is false, throw a TypeError exception.
-                if (typeof predicate !== 'function') {
-                    throw new TypeError('predicate must be a function');
-                }
-
-                // 4. If thisArg was supplied, let T be thisArg; else let T be undefined.
+                if (typeof predicate !== 'function') throw new TypeError('predicate must be a function');
                 var thisArg = arguments[1];
-
-                // 5. Let k be 0.
                 var k = 0;
-
-                // 6. Repeat, while k < len
                 while (k < len) {
-                    // a. Let Pk be ! ToString(k).
-                    // b. Let kValue be ? Get(O, Pk).
-                    // c. Let testResult be ToBoolean(? Call(predicate, T, « kValue, k, O »)).
-                    // d. If testResult is true, return kValue.
                     var kValue = o[k];
-                    if (predicate.call(thisArg, kValue, k, o)) {
-                        return kValue;
-                    }
-                    // e. Increase k by 1.
+                    if (predicate.call(thisArg, kValue, k, o)) return kValue;
                     k++;
                 }
-
-                // 7. Return undefined.
                 return undefined;
             },
-            configurable: true,
-            writable: true
+            configurable: true, writable: true
         });
     }
     return playerActions;
