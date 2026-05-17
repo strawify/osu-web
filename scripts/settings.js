@@ -51,6 +51,7 @@ function setOptionPanel() {
         nightcore: false,
         hidden: false,
 		autoplay: false,
+        relax: false,
 
         hideNumbers: false,
         hideGreat: false,
@@ -93,6 +94,7 @@ function setOptionPanel() {
 	        window.game.nightcore = this.nightcore;
 	        window.game.hidden = this.hidden;
 	        window.game.autoplay = this.autoplay;
+	        window.game.relax = this.relax;
 
 	        window.game.hideNumbers = this.hideNumbers;
 	        window.game.hideGreat = this.hideGreat;
@@ -269,6 +271,7 @@ function setOptionPanel() {
 	bindExclusiveCheck("daycore-check", "daycore", "nightcore-check", "nightcore");
 	bindcheck("hidden-check", "hidden");
 	bindcheck("autoplay-check", "autoplay");
+	bindcheck("relax-check", "relax");
 
 	// skin
 	bindcheck("hidenumbers-check", "hideNumbers");
