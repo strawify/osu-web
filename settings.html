@@ -1,398 +1,480 @@
 <!doctype html>
-<html>
-    <head>
-        <meta charset="utf-8" />
-        <title>游戏设置</title>
-        <link rel="icon" href="favicon.png">
-        <link rel="stylesheet" href="style/picnic.min.css">
-        <link rel="stylesheet" type="text/css" href="style/main.css">
-        <link rel="stylesheet" type="text/css" href="style/font.css">
-        <script src="scripts/settings.js"></script>
-    </head>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Settings — webosu</title>
 
-    <body>
-        <nav id="main-nav">
-            <div class="nav-link">
-                <a href="index.html" class="brand">Osaka Salmon University!</a>
-                <a href="new.html" class="pseudo button">最新</a>
-                <a href="hot.html" class="pseudo button">热门</a>
-                <a href="genre.html" class="pseudo button">分类</a>
-            </div>
-            <div class="nav-search">
-                <form action="search.html">
-                    <input type="text" name="q" placeholder="谱面关键词或sid"/>
-                    <input type="image" class="search-button" src="research.svg">
-                </form>
-            </div>
-            <div class="nav-tool">
-                <a href="local.html" class="pseudo button">收藏夹</a>
-                <a href="faq.html" class="pseudo button">常见问题</a>
-                <a href="settings.html" class="pseudo button active">设置</a>
-                <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">进入全屏</a>
-            </div>
-        </nav>
-        <div class="main-page" id="main-page">
-            <div class="panel">
-                <!-- <h1>Settings</h1> -->
-                <table class="holder" id="settings-panel">
-                    <tr>
-                        <td>
-                            <h3>
-                                显示设置
-                            </h3>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                背景变暗
-                            </div>
-                            <div class="option-control">
-                                <input id="dim-range" class="slider" type="range" min="0" max="100" value="0">
-                                <div class="range-indicator" id="dim-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                背景模糊
-                            </div>
-                            <div class="option-control">
-                                <input id="blur-range" class="slider" type="range" min="0" max="8" value="0">
-                                <div class="range-indicator" id="blur-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                光标大小
-                            </div>
-                            <div class="option-control">
-                                <input id="cursorsize-range" class="slider" type="range" min="0.5" max="2.0" step="0.01" value="0.5">
-                                <div class="range-indicator" id="cursorsize-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="减少光标延迟，但兼容性差，可能闪烁或无法显示">
-                            <div class="option-name">
-                                启用硬件光标
-                            </div>
-                            <div class="option-control">
-                                <input id="showhwmouse-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                滑条渐入
-                            </div>
-                            <div class="option-control">
-                                <input id="snakein-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                滑条渐出
-                            </div>
-                            <div class="option-control">
-                                <input id="snakeout-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                进入游戏自动全屏
-                            </div>
-                            <div class="option-control">
-                                <input id="autofullscreen-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                使用系统分辨率
-                            </div>
-                            <div class="option-control">
-                                <input id="sysdpi-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                分辨率
-                            </div>
-                            <div class="option-control">
-                                <input id="dpi-range" class="slider" type="range" min="0.5" max="2.0" value="1.0" step="0.05">
-                                <div class="range-indicator" id="dpi-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
+    <link rel="stylesheet" href="../style/normalize.css">
+    <link rel="stylesheet" href="../style/font.css">
+    <link rel="stylesheet" href="../style/main.css">
+    <link rel="icon" href="../favicon.png">
 
-                    <tr>
-                        <td>
-                            <h3>
-                                操作设置
-                            </h3>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="以避免偶然改变音量">
-                            <div class="option-name">
-                                游戏时禁用鼠标滚轮
-                            </div>
-                            <div class="option-control">
-                                <input id="disable-wheel-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="以避免偶然点击物体">
-                            <div class="option-name">
-                                游戏时禁用鼠标按钮
-                            </div>
-                            <div class="option-control">
-                                <input id="disable-button-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                左键
-                            </div>
-                            <div class="option-control">
-                                <input id="lbutton1select" type="button" value="oops"/>
-                                <input type="button" value="M1"/>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                右键
-                            </div>
-                            <div class="option-control">
-                                <input id="rbutton1select" type="button" value="oops"/>
-                                <input type="button" value="M2"/>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                暂停键
-                            </div>
-                            <div class="option-control">
-                                <input id="pausebuttonselect" type="button" value="oops"/>
-                                <input id="pausebutton2select" type="button" value="oops"/>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                跳过前奏
-                            </div>
-                            <div class="option-control">
-                                <input id="skipbuttonselect" type="button" value="oops"/>
-                            </div>
-                        </td>
-                    </tr>
+    <script src="../scripts/lib/localforage.min.js"></script>
+    <script src="../scripts/settings.js"></script>
+    <script src="../scripts/lib/zip.js"></script>
+    <script src="../scripts/lib/z-worker.js"></script>
+    <script src="../scripts/skinloader.js"></script>
 
-                    <tr>
-                        <td>
-                            <h3>
-                                音频设置
-                            </h3>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                主音量
-                            </div>
-                            <div class="option-control">
-                                <input id="mastervolume-range" class="slider" type="range" min="0" max="100" value="0">
-                                <div class="range-indicator" id="mastervolume-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                音效音量
-                            </div>
-                            <div class="option-control">
-                                <input id="effectvolume-range" class="slider" type="range" min="0" max="100" value="0">
-                                <div class="range-indicator" id="effectvolume-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                音乐音量
-                            </div>
-                            <div class="option-control">
-                                <input id="musicvolume-range" class="slider" type="range" min="0" max="100" value="0">
-                                <div class="range-indicator" id="musicvolume-range-indicator" hidden></div>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr title="不建议使用！如果不确定有很大延迟，请勿使用！">
-                        <td>
-                            <div class="option-name">
-                                音频偏移
-                            </div>
-                            <div class="option-control">
-                                <input id="audiooffset-range" class="slider" type="range" min="-50" max="50" value="-50">
-                                <div class="range-indicator" id="audiooffset-range-indicator" hidden></div>
-                            </div>
-                            <div style="font-size: 0.8em; color: #999; margin-top: 2.2em;">不建议使用！如使用请关闭打击音效，设为正值则使判定点相对于音乐延后。前往<a style="color: #8bc" href="https://bemuse.ninja/?mode=sync">bemuse sync</a>以判断键盘延迟。</div>
-                        </td>
-                    </tr>
-                    <tr hidden>
-                        <td>
-                            <div class="option-name disabled">
-                                Enable beatmap hitsounds
-                            </div>
-                            <div class="option-control">
-                                <input id="beatmap-hitsound-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
+    <style>
+        .settings-row {
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:12px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);
+        }
 
-                    <tr>
-                        <td>
-                            <h3>
-                                MODS
-                            </h3>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="This doesn't make things easier!">
-                            <div class="option-name">
-                                Easy
-                            </div>
-                            <div class="option-control">
-                                <input id="easy-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Everything gets slower...">
-                            <div class="option-name">
-                                Daycore
-                            </div>
-                            <div class="option-control">
-                                <input id="daycore-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Everything gets a bit harder...">
-                            <div class="option-name">
-                                Hard Rock
-                            </div>
-                            <div class="option-control">
-                                <input id="hardrock-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Play with no approach circles and fading circles/sliders">
-                            <div class="option-name">
-                                Hidden
-                            </div>
-                            <div class="option-control">
-                                <input id="hidden-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Everything gets faster...">
-                            <div class="option-name">
-                                Nightcore
-                            </div>
-                            <div class="option-control">
-                                <input id="nightcore-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td title="Watch a (probably) perfect automated play">
-                            <div class="option-name">
-                                Autoplay
-                            </div>
-                            <div class="option-control">
-                                <input id="autoplay-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
+        .settings-row:last-child {
+            border-bottom:none;
+        }
 
-                    <tr>
-                        <td>
-                            <h3>
-                                皮肤设置
-                            </h3>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                隐藏物体序号
-                            </div>
-                            <div class="option-control">
-                                <input id="hidenumbers-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                隐藏Great判定提示
-                            </div>
-                            <div class="option-control">
-                                <input id="hidegreat-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="option-name">
-                                隐藏连接线
-                            </div>
-                            <div class="option-control">
-                                <input id="hidefollowpoints-check" type="checkbox" /><span></span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <br/>
-                            <input id="restoredefault-btn" type="button" class="warnbtn" value="全部恢复默认设置"/>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-        <!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=UA-169262247-1"></script>
+        .opt-name {
+            color:var(--text-secondary);
+            font-size:0.9em;
+            flex:1;
+        }
+
+        .opt-name small {
+            display:block;
+            color:var(--text-muted);
+            font-size:0.82em;
+            margin-top:2px;
+        }
+
+        .settings-row.non-default .opt-name {
+            color:var(--accent);
+        }
+
+        .opt-ctrl {
+            display:flex;
+            align-items:center;
+            gap:8px;
+            flex-shrink:0;
+        }
+
+        .tog {
+            position:relative;
+            width:40px;
+            height:22px;
+            flex-shrink:0;
+        }
+
+        .tog input {
+            opacity:0;
+            width:0;
+            height:0;
+            position:absolute;
+        }
+
+        .tog-track {
+            position:absolute;
+            inset:0;
+            background:#2a2a2a;
+            border-radius:22px;
+            cursor:pointer;
+            transition:background 0.2s;
+        }
+
+        .tog-track::before {
+            content:"";
+            position:absolute;
+            width:16px;
+            height:16px;
+            left:3px;
+            top:3px;
+            background:#555;
+            border-radius:50%;
+            transition:0.2s;
+        }
+
+        .tog input:checked + .tog-track {
+            background:var(--accent-dark);
+        }
+
+        .tog input:checked + .tog-track::before {
+            transform:translateX(18px);
+            background:#fff;
+        }
+
+        .rng-wrap {
+            position:relative;
+        }
+
+        .rng-wrap input[type="range"] {
+            display:block;
+        }
+
+        .range-indicator {
+            position:absolute;
+            background:var(--bg-secondary);
+            border:1px solid var(--border-light);
+            border-radius:4px;
+            padding:1px 6px;
+            font-size:0.75em;
+            color:var(--text-primary);
+            top:-26px;
+            pointer-events:none;
+            white-space:nowrap;
+        }
+
+        .keybtn {
+            background:var(--bg-input);
+            border:1px solid var(--border-light);
+            border-radius:6px;
+            color:var(--text-primary);
+            padding:4px 14px;
+            min-width:50px;
+            font-size:0.85em;
+            font-family:monospace;
+            cursor:pointer;
+            transition:border-color 0.15s;
+        }
+
+        .keybtn:hover {
+            border-color:var(--accent);
+        }
+
+        .keybtn.using {
+            border-color:var(--accent);
+            background:var(--accent-dark);
+            color:#fff;
+        }
+
+        .sec-title {
+            font-size:0.72em;
+            font-weight:700;
+            letter-spacing:0.12em;
+            text-transform:uppercase;
+            color:var(--accent);
+            margin:0 0 14px 0;
+            padding-bottom:8px;
+            border-bottom:1px solid var(--border);
+        }
+
+        .card {
+            background:var(--bg-card);
+            border:1px solid var(--border);
+            border-radius:var(--radius-lg);
+            padding:20px 24px;
+            margin-bottom:16px;
+        }
+
+        .mod-check-row {
+            display:flex;
+            align-items:center;
+            gap:10px;
+            padding:10px 0;
+            border-bottom:1px solid rgba(255,255,255,0.04);
+        }
+
+        .mod-check-row:last-child {
+            border-bottom:none;
+        }
+
+        .mod-check-row .mod-lbl {
+            flex:1;
+        }
+
+        .mod-check-row .mod-badge {
+            font-size:0.72em;
+            background:var(--bg-input);
+            border:1px solid var(--border);
+            border-radius:4px;
+            padding:1px 6px;
+            color:var(--text-muted);
+        }
+
+        .mod-check-row.relax-row .mod-badge {
+            color:#f6a;
+            border-color:#c06080;
+        }
+
+        .skin-drop {
+            border:2px dashed var(--border-light);
+            border-radius:var(--radius);
+            padding:28px;
+            text-align:center;
+            cursor:pointer;
+            transition:all 0.2s;
+            color:var(--text-muted);
+            background:var(--bg-input);
+        }
+
+        .skin-drop:hover,
+        .skin-drop.dragover {
+            border-color:var(--accent);
+            background:rgba(59,165,93,0.06);
+            color:var(--text-secondary);
+        }
+
+        .skin-drop .icon {
+            font-size:2em;
+            margin-bottom:6px;
+        }
+
+        .skin-drop p {
+            margin:3px 0;
+            font-size:0.88em;
+        }
+
+        .skin-active {
+            display:none;
+            align-items:center;
+            gap:10px;
+            background:rgba(59,165,93,0.1);
+            border:1px solid var(--accent-dark);
+            border-radius:var(--radius);
+            padding:10px 14px;
+            font-size:0.88em;
+            color:var(--accent);
+            margin-top:10px;
+        }
+
+        .skin-active.visible {
+            display:flex;
+        }
+
+        .skin-clear {
+            margin-left:auto;
+            cursor:pointer;
+            color:var(--text-muted);
+            transition:color 0.15s;
+            font-size:1.1em;
+        }
+
+        .skin-clear:hover {
+            color:#ff6666;
+        }
+
+        .skin-prog {
+            display:none;
+            align-items:center;
+            gap:10px;
+            padding:8px 0;
+            color:var(--text-muted);
+            font-size:0.88em;
+        }
+
+        .skin-prog.visible {
+            display:flex;
+        }
+
+        .skin-prog-bar {
+            flex:1;
+            height:4px;
+            background:var(--border);
+            border-radius:2px;
+            overflow:hidden;
+        }
+
+        .skin-prog-fill {
+            height:100%;
+            background:var(--accent);
+            border-radius:2px;
+            transition:width 0.2s;
+            width:0;
+        }
+
+        .restore-btn {
+            background:var(--bg-card);
+            border:1px solid var(--border);
+            border-radius:var(--radius);
+            color:var(--text-secondary);
+            padding:8px 20px;
+            cursor:pointer;
+            font-size:0.9em;
+            font-family:inherit;
+            transition:all 0.15s;
+        }
+
+        .restore-btn:hover {
+            border-color:var(--accent);
+            color:var(--accent);
+        }
+
+        .page-wrap {
+            max-width:700px;
+            margin:0 auto;
+            padding:16px 16px 60px 16px;
+        }
+
+        .page-title {
+            font-size:1.5em;
+            font-weight:700;
+            color:var(--text-primary);
+            margin:0 0 20px 0;
+        }
+
+        .back-link {
+            color:var(--accent);
+            font-size:0.9em;
+            display:inline-flex;
+            align-items:center;
+            gap:4px;
+            margin-bottom:16px;
+        }
+
+        .back-link:hover {
+            color:#5bc97a;
+        }
+    </style>
+</head>
+
+<body>
+<nav id="main-nav">
+    <div class="nav-link">
+        <a href="../index.html" class="brand">webosu</a>
+    </div>
+
+    <div class="nav-tool">
+        <a href="../index.html" class="pseudo button">Home</a>
+        <a href="../new.html" class="pseudo button">New</a>
+        <a href="../hot.html" class="pseudo button">Hot</a>
+        <a href="../local.html" class="pseudo button">Favourites</a>
+        <a href="settings.html" class="pseudo button active">Settings</a>
+    </div>
+</nav>
+
+<div class="main-page">
+<div class="page-wrap" id="settings-panel">
+
+    <h1 class="page-title">⚙ Settings</h1>
+
+</div>
+</div>
+
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+(function() {
 
-  gtag('config', 'UA-169262247-1');
+    document.addEventListener('DOMContentLoaded', function() {
+
+        document.querySelectorAll('.settings-row, .mod-check-row').forEach(function(row) {
+
+            row.querySelectorAll('input').forEach(function(inp) {
+
+                inp.addEventListener('change', function() {
+
+                });
+
+            });
+
+        });
+
+        var dropZone = document.getElementById('skin-drop-zone');
+        var fileInput = document.getElementById('skin-file-input');
+        var progressBar = document.getElementById('skin-progress-bar');
+        var progFill = document.getElementById('skin-prog-fill');
+        var activeBar = document.getElementById('skin-active');
+        var activeName = document.getElementById('skin-active-name');
+        var clearBtn = document.getElementById('skin-clear-btn');
+
+        if (window.SkinLoader && SkinLoader.getSavedSkinName()) {
+            activeName.textContent = SkinLoader.getSavedSkinName();
+            activeBar.classList.add('visible');
+        }
+
+        function handleSkinFile(file) {
+
+            if (!file) return;
+
+            var ext = file.name.split('.').pop().toLowerCase();
+
+            if (ext !== 'osk' && ext !== 'zip') {
+                showToast('Please select a .osk file (rename your skin zip to .osk)');
+                return;
+            }
+
+            progressBar.classList.add('visible');
+            activeBar.classList.remove('visible');
+            progFill.style.width = '0%';
+
+            if (!window.SkinLoader) {
+                showToast('Skin loader not ready — try refreshing the page');
+                progressBar.classList.remove('visible');
+                return;
+            }
+
+            SkinLoader.load(
+                file,
+
+                function onProgress(pct) {
+                    progFill.style.width = pct + '%';
+                },
+
+                function onComplete(name) {
+                    progressBar.classList.remove('visible');
+                    activeName.textContent = name;
+                    activeBar.classList.add('visible');
+                    showToast('Skin loaded: ' + name);
+                },
+
+                function onError(e) {
+                    progressBar.classList.remove('visible');
+                    showToast('Failed to load skin: ' + e);
+                }
+            );
+        }
+
+        dropZone.addEventListener('click', function() {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function() {
+            handleSkinFile(fileInput.files[0]);
+            fileInput.value = '';
+        });
+
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', function() {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            handleSkinFile(e.dataTransfer.files[0]);
+        });
+
+        clearBtn.addEventListener('click', function() {
+
+            if (window.SkinLoader) {
+                SkinLoader.reset();
+            }
+
+            activeBar.classList.remove('visible');
+            showToast('Skin removed — using default skin');
+        });
+
+    });
+
+    window.showToast = function(msg) {
+
+        var t = document.getElementById('_toast');
+
+        if (!t) {
+            t = document.createElement('div');
+            t.id = '_toast';
+            t.className = 'skin-toast';
+            document.body.appendChild(t);
+        }
+
+        t.textContent = msg;
+        t.classList.add('show');
+
+        clearTimeout(t._timer);
+
+        t._timer = setTimeout(function() {
+            t.classList.remove('show');
+        }, 3000);
+    };
+
+})();
 </script>
-    </body>
+
+</body>
 </html>
