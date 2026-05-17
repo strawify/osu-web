@@ -46,6 +46,7 @@ function(Osu, _, sound, Playback) {
         hardrock: false,
         easy: false,
         hidden: false,
+        relax: false,
 
         // skin mods
         hideNumbers: false,
