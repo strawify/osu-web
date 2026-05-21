@@ -2,8 +2,10 @@
 <html>
     <head>
         <meta charset="utf-8" />
-        <title>戳泡泡</title>
-        <link rel="stylesheet" href="style/picnic.min.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <title>webosu</title>
+        
+        <link rel="stylesheet" href="style/normalize.css">
         <link rel="stylesheet" type="text/css" href="style/main.css">
         <link rel="stylesheet" type="text/css" href="style/font.css">
         <link rel="icon" href="favicon.png">
@@ -12,6 +14,9 @@
         <script src="scripts/addbeatmaplist.js"></script>
         <script src="scripts/settings.js"></script>
         <script src="scripts/jsloader.js"></script>
+        <script src="scripts/lib/zip.js"></script>
+        <script src="scripts/lib/zip-fs.js"></script>
+        <script src="scripts/skinloader.js"></script>
     </head>
 
     <body>
@@ -33,24 +38,28 @@
             </div>
         </div>
 
-        <nav id="main-nav">
+                <nav id="main-nav">
             <div class="nav-link">
-                <a href="index.html" class="brand">Osaka Salmon University!</a>
-                <a href="new.html" class="pseudo button">最新</a>
-                <a href="hot.html" class="pseudo button">热门</a>
-                <a href="genre.html" class="pseudo button">分类</a>
+                <a href="index.html" class="brand">webosu</a>
+                <a href="new.html" class="pseudo button">New</a>
+                <a href="hot.html" class="pseudo button">Hot</a>
+                <a href="genre.html" class="pseudo button">Genre</a>
             </div>
             <div class="nav-search">
                 <form action="search.html">
-                    <input type="text" id="inputtext"name="q" placeholder="谱面关键词或sid"/>
-                    <input type="image" class="search-button" src="research.svg">
+                    <input type="text" name="q" placeholder="Search beatmaps&#8230;"/>
+                    <input type="image" class="search-button" src="research.svg" alt="Search">
                 </form>
             </div>
             <div class="nav-tool">
-                <a href="local.html" class="pseudo button">收藏夹</a>
-                <a href="faq.html" class="pseudo button">常见问题</a>
-                <a href="settings.html" class="pseudo button">设置</a>
-                <a onclick="document.documentElement.requestFullscreen();" class="pseudo button">进入全屏</a>
+                <a href="local.html" class="pseudo button">Favourites</a>
+                <a href="faq.html" class="pseudo button">FAQ</a>
+                <a href="en/settings.html" class="pseudo button">Settings</a>
+                <label class="nav-skin-btn" id="nav-skin-btn" title="Import .osk skin">
+                    <span class="nav-skin-indicator" id="nav-skin-indicator" style="display:none"></span>
+                    &#127912; Skin
+                    <input type="file" id="nav-skin-input" accept=".osk,.zip" style="display:none">
+                </label>
             </div>
         </nav>
 
@@ -60,9 +69,9 @@
                     <!-- to be filled in script -->
                 </div>
                 <div class="button" style="width:100%; margin-bottom: 10px;" id="btnmore">加载更多</div>
-                <div class="text">推荐使用最新版本 Firefox 或 Chrome.</div>
-                <div class="text">内测版v1.4.3. <a href="https://github.com/111116/osu">Github</a></div>
-                <div class="text">由<a href="https://osu.sayobot.cn/">Sayobot</a>提供谱面</div>
+                <div class="text">Recommended: latest Firefox or Chrome</div>
+                <div class="text"> <a href="https://github.com/111116/osu">Github</a></div>
+                <div class="text">Beatmaps by <a href="https://osu.sayobot.cn/">Sayobot</a></div>
             </div>
             <!-- <div class="side-panel">
                 to be activated in script
@@ -119,6 +128,13 @@
   gtag('js', new Date());
 
   gtag('config', 'UA-169262247-1');
+</script>
+    
+<!-- Skin toast -->
+<div class="skin-toast" id="skin-toast"></div>
+<script>
+function showSkinToast(msg){var t=document.getElementById('skin-toast');if(!t)return;t.textContent=msg;t.classList.add('show');clearTimeout(t._timer);t._timer=setTimeout(function(){t.classList.remove('show');},3000);}
+(function(){var navInput=document.getElementById('nav-skin-input');var navInd=document.getElementById('nav-skin-indicator');if(!navInput)return;navInput.addEventListener('change',function(){var file=navInput.files[0];if(!file)return;navInput.value='';var ext=file.name.split('.').pop().toLowerCase();if(ext!=='osk'&&ext!=='zip'){showSkinToast('Please use a .osk file');return;}if(!window.SkinLoader){showSkinToast('Skin loader not ready');return;}showSkinToast('Loading skin...');SkinLoader.load(file,function(){},function(name){if(navInd)navInd.style.display='inline-block';showSkinToast('Skin loaded: '+name);},function(e){showSkinToast('Skin error: '+e);});});if(window.SkinLoader&&SkinLoader.getSavedSkinName()&&navInd)navInd.style.display='inline-block';window.addEventListener('DOMContentLoaded',function(){if(window.SkinLoader&&SkinLoader.getSavedSkinName()&&navInd)navInd.style.display='inline-block';});})();
 </script>
     </body>
 </html>
