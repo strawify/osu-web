@@ -4,363 +4,350 @@
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Settings — webosu</title>
-
     <link rel="stylesheet" href="../style/normalize.css">
     <link rel="stylesheet" href="../style/font.css">
     <link rel="stylesheet" href="../style/main.css">
     <link rel="icon" href="../favicon.png">
-
     <script src="../scripts/lib/localforage.min.js"></script>
     <script src="../scripts/settings.js"></script>
     <script src="../scripts/lib/zip.js"></script>
-    <script src="../scripts/lib/z-worker.js"></script>
+    <script src="../scripts/lib/zip-fs.js"></script>
     <script src="../scripts/skinloader.js"></script>
-
     <style>
-        .settings-row {
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            padding:12px 0;
-            border-bottom:1px solid rgba(255,255,255,0.04);
-        }
+        .settings-row { display:flex; align-items:center; justify-content:space-between; padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+        .settings-row:last-child { border-bottom:none; }
+        .opt-name { color:var(--text-secondary); font-size:0.9em; flex:1; }
+        .opt-name small { display:block; color:var(--text-muted); font-size:0.82em; margin-top:2px; }
+        .settings-row.non-default .opt-name { color:var(--accent); }
+        .opt-ctrl { display:flex; align-items:center; gap:8px; flex-shrink:0; }
 
-        .settings-row:last-child {
-            border-bottom:none;
-        }
+        /* toggle */
+        .tog { position:relative; width:40px; height:22px; flex-shrink:0; }
+        .tog input { opacity:0; width:0; height:0; position:absolute; }
+        .tog-track { position:absolute; inset:0; background:#2a2a2a; border-radius:22px; cursor:pointer; transition:background 0.2s; }
+        .tog-track::before { content:""; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#555; border-radius:50%; transition:0.2s; }
+        .tog input:checked + .tog-track { background:var(--accent-dark); }
+        .tog input:checked + .tog-track::before { transform:translateX(18px); background:#fff; }
 
-        .opt-name {
-            color:var(--text-secondary);
-            font-size:0.9em;
-            flex:1;
-        }
+        /* range */
+        .rng-wrap { position:relative; }
+        .rng-wrap input[type="range"] { display:block; }
+        .range-indicator { position:absolute; background:var(--bg-secondary); border:1px solid var(--border-light); border-radius:4px; padding:1px 6px; font-size:0.75em; color:var(--text-primary); top:-26px; pointer-events:none; white-space:nowrap; }
 
-        .opt-name small {
-            display:block;
-            color:var(--text-muted);
-            font-size:0.82em;
-            margin-top:2px;
-        }
+        /* key btn */
+        .keybtn { background:var(--bg-input); border:1px solid var(--border-light); border-radius:6px; color:var(--text-primary); padding:4px 14px; min-width:50px; font-size:0.85em; font-family:monospace; cursor:pointer; transition:border-color 0.15s; }
+        .keybtn:hover { border-color:var(--accent); }
+        .keybtn.using { border-color:var(--accent); background:var(--accent-dark); color:#fff; }
 
-        .settings-row.non-default .opt-name {
-            color:var(--accent);
-        }
+        /* section title */
+        .sec-title { font-size:0.72em; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent); margin:0 0 14px 0; padding-bottom:8px; border-bottom:1px solid var(--border); }
 
-        .opt-ctrl {
-            display:flex;
-            align-items:center;
-            gap:8px;
-            flex-shrink:0;
-        }
+        /* card */
+        .card { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px 24px; margin-bottom:16px; }
 
-        .tog {
-            position:relative;
-            width:40px;
-            height:22px;
-            flex-shrink:0;
-        }
+        /* mod row */
+        .mod-check-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+        .mod-check-row:last-child { border-bottom:none; }
+        .mod-check-row .mod-lbl { flex:1; }
+        .mod-check-row .mod-badge { font-size:0.72em; background:var(--bg-input); border:1px solid var(--border); border-radius:4px; padding:1px 6px; color:var(--text-muted); }
+        .mod-check-row.relax-row .mod-badge { color:#f6a; border-color:#c06080; }
 
-        .tog input {
-            opacity:0;
-            width:0;
-            height:0;
-            position:absolute;
-        }
+        /* skin drop */
+        .skin-drop { border:2px dashed var(--border-light); border-radius:var(--radius); padding:28px; text-align:center; cursor:pointer; transition:all 0.2s; color:var(--text-muted); background:var(--bg-input); }
+        .skin-drop:hover, .skin-drop.dragover { border-color:var(--accent); background:rgba(59,165,93,0.06); color:var(--text-secondary); }
+        .skin-drop .icon { font-size:2em; margin-bottom:6px; }
+        .skin-drop p { margin:3px 0; font-size:0.88em; }
+        .skin-active { display:none; align-items:center; gap:10px; background:rgba(59,165,93,0.1); border:1px solid var(--accent-dark); border-radius:var(--radius); padding:10px 14px; font-size:0.88em; color:var(--accent); margin-top:10px; }
+        .skin-active.visible { display:flex; }
+        .skin-clear { margin-left:auto; cursor:pointer; color:var(--text-muted); transition:color 0.15s; font-size:1.1em; }
+        .skin-clear:hover { color:#ff6666; }
+        .skin-prog { display:none; align-items:center; gap:10px; padding:8px 0; color:var(--text-muted); font-size:0.88em; }
+        .skin-prog.visible { display:flex; }
+        .skin-prog-bar { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+        .skin-prog-fill { height:100%; background:var(--accent); border-radius:2px; transition:width 0.2s; width:0; }
 
-        .tog-track {
-            position:absolute;
-            inset:0;
-            background:#2a2a2a;
-            border-radius:22px;
-            cursor:pointer;
-            transition:background 0.2s;
-        }
+        .restore-btn { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); color:var(--text-secondary); padding:8px 20px; cursor:pointer; font-size:0.9em; font-family:inherit; transition:all 0.15s; }
+        .restore-btn:hover { border-color:var(--accent); color:var(--accent); }
 
-        .tog-track::before {
-            content:"";
-            position:absolute;
-            width:16px;
-            height:16px;
-            left:3px;
-            top:3px;
-            background:#555;
-            border-radius:50%;
-            transition:0.2s;
-        }
-
-        .tog input:checked + .tog-track {
-            background:var(--accent-dark);
-        }
-
-        .tog input:checked + .tog-track::before {
-            transform:translateX(18px);
-            background:#fff;
-        }
-
-        .rng-wrap {
-            position:relative;
-        }
-
-        .rng-wrap input[type="range"] {
-            display:block;
-        }
-
-        .range-indicator {
-            position:absolute;
-            background:var(--bg-secondary);
-            border:1px solid var(--border-light);
-            border-radius:4px;
-            padding:1px 6px;
-            font-size:0.75em;
-            color:var(--text-primary);
-            top:-26px;
-            pointer-events:none;
-            white-space:nowrap;
-        }
-
-        .keybtn {
-            background:var(--bg-input);
-            border:1px solid var(--border-light);
-            border-radius:6px;
-            color:var(--text-primary);
-            padding:4px 14px;
-            min-width:50px;
-            font-size:0.85em;
-            font-family:monospace;
-            cursor:pointer;
-            transition:border-color 0.15s;
-        }
-
-        .keybtn:hover {
-            border-color:var(--accent);
-        }
-
-        .keybtn.using {
-            border-color:var(--accent);
-            background:var(--accent-dark);
-            color:#fff;
-        }
-
-        .sec-title {
-            font-size:0.72em;
-            font-weight:700;
-            letter-spacing:0.12em;
-            text-transform:uppercase;
-            color:var(--accent);
-            margin:0 0 14px 0;
-            padding-bottom:8px;
-            border-bottom:1px solid var(--border);
-        }
-
-        .card {
-            background:var(--bg-card);
-            border:1px solid var(--border);
-            border-radius:var(--radius-lg);
-            padding:20px 24px;
-            margin-bottom:16px;
-        }
-
-        .mod-check-row {
-            display:flex;
-            align-items:center;
-            gap:10px;
-            padding:10px 0;
-            border-bottom:1px solid rgba(255,255,255,0.04);
-        }
-
-        .mod-check-row:last-child {
-            border-bottom:none;
-        }
-
-        .mod-check-row .mod-lbl {
-            flex:1;
-        }
-
-        .mod-check-row .mod-badge {
-            font-size:0.72em;
-            background:var(--bg-input);
-            border:1px solid var(--border);
-            border-radius:4px;
-            padding:1px 6px;
-            color:var(--text-muted);
-        }
-
-        .mod-check-row.relax-row .mod-badge {
-            color:#f6a;
-            border-color:#c06080;
-        }
-
-        .skin-drop {
-            border:2px dashed var(--border-light);
-            border-radius:var(--radius);
-            padding:28px;
-            text-align:center;
-            cursor:pointer;
-            transition:all 0.2s;
-            color:var(--text-muted);
-            background:var(--bg-input);
-        }
-
-        .skin-drop:hover,
-        .skin-drop.dragover {
-            border-color:var(--accent);
-            background:rgba(59,165,93,0.06);
-            color:var(--text-secondary);
-        }
-
-        .skin-drop .icon {
-            font-size:2em;
-            margin-bottom:6px;
-        }
-
-        .skin-drop p {
-            margin:3px 0;
-            font-size:0.88em;
-        }
-
-        .skin-active {
-            display:none;
-            align-items:center;
-            gap:10px;
-            background:rgba(59,165,93,0.1);
-            border:1px solid var(--accent-dark);
-            border-radius:var(--radius);
-            padding:10px 14px;
-            font-size:0.88em;
-            color:var(--accent);
-            margin-top:10px;
-        }
-
-        .skin-active.visible {
-            display:flex;
-        }
-
-        .skin-clear {
-            margin-left:auto;
-            cursor:pointer;
-            color:var(--text-muted);
-            transition:color 0.15s;
-            font-size:1.1em;
-        }
-
-        .skin-clear:hover {
-            color:#ff6666;
-        }
-
-        .skin-prog {
-            display:none;
-            align-items:center;
-            gap:10px;
-            padding:8px 0;
-            color:var(--text-muted);
-            font-size:0.88em;
-        }
-
-        .skin-prog.visible {
-            display:flex;
-        }
-
-        .skin-prog-bar {
-            flex:1;
-            height:4px;
-            background:var(--border);
-            border-radius:2px;
-            overflow:hidden;
-        }
-
-        .skin-prog-fill {
-            height:100%;
-            background:var(--accent);
-            border-radius:2px;
-            transition:width 0.2s;
-            width:0;
-        }
-
-        .restore-btn {
-            background:var(--bg-card);
-            border:1px solid var(--border);
-            border-radius:var(--radius);
-            color:var(--text-secondary);
-            padding:8px 20px;
-            cursor:pointer;
-            font-size:0.9em;
-            font-family:inherit;
-            transition:all 0.15s;
-        }
-
-        .restore-btn:hover {
-            border-color:var(--accent);
-            color:var(--accent);
-        }
-
-        .page-wrap {
-            max-width:700px;
-            margin:0 auto;
-            padding:16px 16px 60px 16px;
-        }
-
-        .page-title {
-            font-size:1.5em;
-            font-weight:700;
-            color:var(--text-primary);
-            margin:0 0 20px 0;
-        }
-
-        .back-link {
-            color:var(--accent);
-            font-size:0.9em;
-            display:inline-flex;
-            align-items:center;
-            gap:4px;
-            margin-bottom:16px;
-        }
-
-        .back-link:hover {
-            color:#5bc97a;
-        }
+        .page-wrap { max-width:700px; margin:0 auto; padding:16px 16px 60px 16px; }
+        .page-title { font-size:1.5em; font-weight:700; color:var(--text-primary); margin:0 0 20px 0; }
+        .back-link { color:var(--accent); font-size:0.9em; display:inline-flex; align-items:center; gap:4px; margin-bottom:16px; }
+        .back-link:hover { color:#5bc97a; }
     </style>
 </head>
-
 <body>
 <nav id="main-nav">
     <div class="nav-link">
         <a href="../index.html" class="brand">webosu</a>
     </div>
-
     <div class="nav-tool">
-        <a href="../index.html" class="pseudo button">Home</a>
-        <a href="../new.html" class="pseudo button">New</a>
-        <a href="../hot.html" class="pseudo button">Hot</a>
-        <a href="../local.html" class="pseudo button">Favourites</a>
-        <a href="settings.html" class="pseudo button active">Settings</a>
+        <a href="../index.html"  class="pseudo button">Home</a>
+        <a href="../new.html"    class="pseudo button">New</a>
+        <a href="../hot.html"    class="pseudo button">Hot</a>
+        <a href="../local.html"  class="pseudo button">Favourites</a>
+        <a href="settings.html"  class="pseudo button active">Settings</a>
     </div>
 </nav>
 
 <div class="main-page">
 <div class="page-wrap" id="settings-panel">
-
     <h1 class="page-title">⚙ Settings</h1>
 
-</div>
-</div>
+    <!-- GAMEPLAY -->
+    <div class="card">
+        <h3 class="sec-title">Gameplay</h3>
+
+        <div class="settings-row" id="sr-dim">
+            <div class="opt-name">Background dim</div>
+            <div class="opt-ctrl rng-wrap">
+                <div class="range-indicator" id="dim-range-indicator" hidden></div>
+                <input id="dim-range" type="range" min="0" max="100" value="0" style="width:140px">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-blur">
+            <div class="opt-name">Background blur</div>
+            <div class="opt-ctrl rng-wrap">
+                <div class="range-indicator" id="blur-range-indicator" hidden></div>
+                <input id="blur-range" type="range" min="0" max="8" value="0" style="width:140px">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-cursor">
+            <div class="opt-name">Cursor size</div>
+            <div class="opt-ctrl rng-wrap">
+                <div class="range-indicator" id="cursorsize-range-indicator" hidden></div>
+                <input id="cursorsize-range" type="range" min="0.5" max="2.0" step="0.01" value="1.0" style="width:140px">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-hwmouse">
+            <div class="opt-name">Show hardware cursor<small>Less latency, may not display correctly on some browsers</small></div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="showhwmouse-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+        <div class="settings-row" id="sr-snakein">
+            <div class="opt-name">Snaking in sliders</div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="snakein-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+        <div class="settings-row" id="sr-snakeout">
+            <div class="opt-name">Snaking out sliders</div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="snakeout-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+        <div class="settings-row" id="sr-fullscreen">
+            <div class="opt-name">Auto fullscreen on game start</div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="autofullscreen-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+        <div class="settings-row" id="sr-sysdpi">
+            <div class="opt-name">Use system DPI (recommended)</div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="sysdpi-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+        <div class="settings-row" id="sr-dpi">
+            <div class="opt-name">Custom DPI scale</div>
+            <div class="opt-ctrl rng-wrap">
+                <div class="range-indicator" id="dpi-range-indicator" hidden></div>
+                <input id="dpi-range" type="range" min="0.5" max="3.0" step="0.05" value="1.0" style="width:120px">
+            </div>
+        </div>
+    </div>
+
+    <!-- INPUT -->
+    <div class="card">
+        <h3 class="sec-title">Input</h3>
+        <div class="settings-row" id="sr-disablewheel">
+            <div class="opt-name">Disable mouse wheel in gameplay<small>Prevents accidental volume change</small></div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="disable-wheel-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+        <div class="settings-row" id="sr-disablebtn">
+            <div class="opt-name">Disable mouse buttons in gameplay</div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="disable-button-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+        <div class="settings-row" id="sr-k1">
+            <div class="opt-name">Left key (K1)</div>
+            <div class="opt-ctrl">
+                <input id="lbutton1select" type="button" value="Z" class="keybtn">
+                <input type="button" value="M1" class="keybtn" style="opacity:0.4;cursor:default">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-k2">
+            <div class="opt-name">Right key (K2)</div>
+            <div class="opt-ctrl">
+                <input id="rbutton1select" type="button" value="X" class="keybtn">
+                <input type="button" value="M2" class="keybtn" style="opacity:0.4;cursor:default">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-pause">
+            <div class="opt-name">Pause key</div>
+            <div class="opt-ctrl">
+                <input id="pausebuttonselect" type="button" value="SPACE" class="keybtn">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-pause2">
+            <div class="opt-name">Pause key (alt)</div>
+            <div class="opt-ctrl">
+                <input id="pausebutton2select" type="button" value="ESC" class="keybtn">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-skip">
+            <div class="opt-name">Skip key</div>
+            <div class="opt-ctrl">
+                <input id="skipbuttonselect" type="button" value="CTRL" class="keybtn">
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO -->
+    <div class="card">
+        <h3 class="sec-title">Audio</h3>
+        <div class="settings-row" id="sr-mastervol">
+            <div class="opt-name">Master volume</div>
+            <div class="opt-ctrl rng-wrap">
+                <div class="range-indicator" id="mastervolume-range-indicator" hidden></div>
+                <input id="mastervolume-range" type="range" min="0" max="100" value="60" style="width:140px">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-effectvol">
+            <div class="opt-name">Effect volume</div>
+            <div class="opt-ctrl rng-wrap">
+                <div class="range-indicator" id="effectvolume-range-indicator" hidden></div>
+                <input id="effectvolume-range" type="range" min="0" max="100" value="100" style="width:140px">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-musicvol">
+            <div class="opt-name">Music volume</div>
+            <div class="opt-ctrl rng-wrap">
+                <div class="range-indicator" id="musicvolume-range-indicator" hidden></div>
+                <input id="musicvolume-range" type="range" min="0" max="100" value="100" style="width:140px">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-offset">
+            <div class="opt-name">Audio offset</div>
+            <div class="opt-ctrl rng-wrap">
+                <div class="range-indicator" id="audiooffset-range-indicator" hidden></div>
+                <input id="audiooffset-range" type="range" min="-80" max="80" value="0" style="width:140px">
+            </div>
+        </div>
+        <div class="settings-row" id="sr-hitsound">
+            <div class="opt-name">Enable beatmap hitsounds</div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="beatmap-hitsound-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODS -->
+    <div class="card">
+        <h3 class="sec-title">Mods</h3>
+        <div class="mod-check-row" id="sr-easy">
+            <div class="mod-lbl opt-name">Easy <span class="mod-badge">EZ</span></div>
+            <label class="tog"><input id="easy-check" type="checkbox"><div class="tog-track"></div></label>
+        </div>
+        <div class="mod-check-row" id="sr-daycore">
+            <div class="mod-lbl opt-name">Daycore <span class="mod-badge">DC</span><small>Slower tempo</small></div>
+            <label class="tog"><input id="daycore-check" type="checkbox"><div class="tog-track"></div></label>
+        </div>
+        <div class="mod-check-row" id="sr-hardrock">
+            <div class="mod-lbl opt-name">Hard Rock <span class="mod-badge">HR</span></div>
+            <label class="tog"><input id="hardrock-check" type="checkbox"><div class="tog-track"></div></label>
+        </div>
+        <div class="mod-check-row" id="sr-hidden">
+            <div class="mod-lbl opt-name">Hidden <span class="mod-badge">HD</span><small>No approach circles, fading notes</small></div>
+            <label class="tog"><input id="hidden-check" type="checkbox"><div class="tog-track"></div></label>
+        </div>
+        <div class="mod-check-row" id="sr-nightcore">
+            <div class="mod-lbl opt-name">Nightcore <span class="mod-badge">NC</span><small>Faster tempo</small></div>
+            <label class="tog"><input id="nightcore-check" type="checkbox"><div class="tog-track"></div></label>
+        </div>
+        <div class="mod-check-row relax-row" id="sr-relax">
+            <div class="mod-lbl opt-name">Relax <span class="mod-badge">RX</span><small>Auto-clicks when cursor is on a note — just move!</small></div>
+            <label class="tog"><input id="relax-check" type="checkbox"><div class="tog-track"></div></label>
+        </div>
+        <div class="mod-check-row" id="sr-autoplay">
+            <div class="mod-lbl opt-name">Autoplay <span class="mod-badge">AT</span><small>Watch a perfect play</small></div>
+            <label class="tog"><input id="autoplay-check" type="checkbox"><div class="tog-track"></div></label>
+        </div>
+    </div>
+
+    <!-- SKIN OPTIONS -->
+    <div class="card">
+        <h3 class="sec-title">Skin Display Options</h3>
+        <div class="settings-row" id="sr-hidenums">
+            <div class="opt-name">Hide hit circle numbers</div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="hidenumbers-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+        <div class="settings-row" id="sr-hidegreat">
+            <div class="opt-name">Hide "Great" (300s)</div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="hidegreat-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+        <div class="settings-row" id="sr-hidefp">
+            <div class="opt-name">Hide follow points</div>
+            <div class="opt-ctrl">
+                <label class="tog"><input id="hidefollowpoints-check" type="checkbox"><div class="tog-track"></div></label>
+            </div>
+        </div>
+    </div>
+
+    <!-- CUSTOM SKIN IMPORT -->
+    <div class="card" id="skin-import-card">
+        <h3 class="sec-title">Custom Skin (.osk)</h3>
+        <p style="color:var(--text-muted);font-size:0.85em;margin:0 0 12px 0">
+            Import an osu! skin file. Rename your skin's .zip to .osk, then drag it here or click to browse.
+        </p>
+
+        <div class="skin-drop" id="skin-drop-zone" tabindex="0" role="button" aria-label="Drop .osk skin file here">
+            <div class="icon">🎨</div>
+            <p><strong>Drop .osk file here</strong></p>
+            <p style="font-size:0.8em;color:var(--text-muted)">or click to browse</p>
+        </div>
+        <input type="file" id="skin-file-input" accept=".osk,.zip" style="display:none">
+
+        <div class="skin-prog" id="skin-progress-bar">
+            <span>Loading skin…</span>
+            <div class="skin-prog-bar"><div class="skin-prog-fill" id="skin-prog-fill"></div></div>
+        </div>
+
+        <div class="skin-active" id="skin-active">
+            <span>🎨</span>
+            <span id="skin-active-name">Custom Skin</span>
+            <span class="skin-clear" id="skin-clear-btn" title="Remove skin">✕</span>
+        </div>
+    </div>
+
+    <button id="restoredefault-btn" class="restore-btn">↩ Restore all settings to default</button>
+</div><!-- page-wrap -->
+</div><!-- main-page -->
 
 <script>
-(function() {
-
-    document.addEventListener('DOMContentLoaded', function() {
-
-        document.querySelectorAll('.settings-row, .mod-check-row').forEach(function(row) {
-
-            row.querySelectorAll('input').forEach(function(inp) {
-
-                inp.addEventListener('change', function() {
-
+// Wire up toggle rows to add non-default class on parent
+(function(){
+    // After settings.js runs, patch non-default detection for new toggle style
+    var origLoadFromLocal = null;
+    // Patch checkdefault to highlight the .settings-row parent
+    document.addEventListener('DOMContentLoaded', function(){
+        // Map old option-control checkboxes/ranges to their settings-row parent
+        document.querySelectorAll('.settings-row, .mod-check-row').forEach(function(row){
+            row.querySelectorAll('input').forEach(function(inp){
+                inp.addEventListener('change', function(){
+                    // handled by settings.js binding
                 });
-
             });
-
         });
 
+        // ── Custom skin UI logic ─────────────────────────────────────────
         var dropZone = document.getElementById('skin-drop-zone');
         var fileInput = document.getElementById('skin-file-input');
         var progressBar = document.getElementById('skin-progress-bar');
@@ -369,22 +356,20 @@
         var activeName = document.getElementById('skin-active-name');
         var clearBtn = document.getElementById('skin-clear-btn');
 
+        // Show saved skin name if any
         if (window.SkinLoader && SkinLoader.getSavedSkinName()) {
             activeName.textContent = SkinLoader.getSavedSkinName();
             activeBar.classList.add('visible');
         }
 
         function handleSkinFile(file) {
-
             if (!file) return;
-
+            // Accept .osk or .zip
             var ext = file.name.split('.').pop().toLowerCase();
-
             if (ext !== 'osk' && ext !== 'zip') {
                 showToast('Please select a .osk file (rename your skin zip to .osk)');
                 return;
             }
-
             progressBar.classList.add('visible');
             activeBar.classList.remove('visible');
             progFill.style.width = '0%';
@@ -395,20 +380,14 @@
                 return;
             }
 
-            SkinLoader.load(
-                file,
-
-                function onProgress(pct) {
-                    progFill.style.width = pct + '%';
-                },
-
+            SkinLoader.load(file,
+                function onProgress(pct) { progFill.style.width = pct + '%'; },
                 function onComplete(name) {
                     progressBar.classList.remove('visible');
                     activeName.textContent = name;
                     activeBar.classList.add('visible');
                     showToast('Skin loaded: ' + name);
                 },
-
                 function onError(e) {
                     progressBar.classList.remove('visible');
                     showToast('Failed to load skin: ' + e);
@@ -416,65 +395,45 @@
             );
         }
 
-        dropZone.addEventListener('click', function() {
-            fileInput.click();
-        });
-
+        dropZone.addEventListener('click', function() { fileInput.click(); });
         fileInput.addEventListener('change', function() {
             handleSkinFile(fileInput.files[0]);
             fileInput.value = '';
         });
-
         dropZone.addEventListener('dragover', function(e) {
             e.preventDefault();
             dropZone.classList.add('dragover');
         });
-
         dropZone.addEventListener('dragleave', function() {
             dropZone.classList.remove('dragover');
         });
-
         dropZone.addEventListener('drop', function(e) {
             e.preventDefault();
             dropZone.classList.remove('dragover');
             handleSkinFile(e.dataTransfer.files[0]);
         });
-
         clearBtn.addEventListener('click', function() {
-
-            if (window.SkinLoader) {
-                SkinLoader.reset();
-            }
-
+            if (window.SkinLoader) SkinLoader.reset();
             activeBar.classList.remove('visible');
             showToast('Skin removed — using default skin');
         });
-
     });
 
+    // Simple toast
     window.showToast = function(msg) {
-
         var t = document.getElementById('_toast');
-
         if (!t) {
             t = document.createElement('div');
             t.id = '_toast';
             t.className = 'skin-toast';
             document.body.appendChild(t);
         }
-
         t.textContent = msg;
         t.classList.add('show');
-
         clearTimeout(t._timer);
-
-        t._timer = setTimeout(function() {
-            t.classList.remove('show');
-        }, 3000);
+        t._timer = setTimeout(function(){ t.classList.remove('show'); }, 3000);
     };
-
 })();
 </script>
-
 </body>
 </html>
