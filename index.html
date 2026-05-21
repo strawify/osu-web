@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <title>webosu</title>
         <link rel="stylesheet" href="style/normalize.css">
-        <link rel="stylesheet" type="text/css" href="style/theme.css">
+        <link rel="stylesheet" type="text/css" href="style/main.css">
         <link rel="stylesheet" type="text/css" href="style/font.css">
         <link rel="icon" href="favicon.png">
         <script src="scripts/launchgame.js"></script>
@@ -15,6 +15,7 @@
         <script src="scripts/jsloader.js"></script>
         <script src="scripts/lib/localforage.min.js"></script>
         <script src="scripts/lib/zip.js"></script>
+        <script src="scripts/lib/zip-fs.js"></script>
         <script src="scripts/skinloader.js"></script>
     </head>
 
@@ -191,7 +192,7 @@
                 let listhistory = document.getElementById("beatmap-list-history");
                 localforage.getItem("playhistory1000", function(err, item) {
                     if (err) {
-                        listhistory.innerText = "游玩记录加载失败";
+                        listhistory.innerText = "Play History — webosu加载失败";
                         return;
                     }
                     if (item && item.length) {
@@ -206,7 +207,7 @@
                             addBeatmapSid(sid[i], listhistory)
                     }
                     else {
-                        listhistory.innerText = "你还没有玩过一首歌曲哦！单击曲目，待加载完成后选择难度即开始游玩。";
+                        listhistory.innerText = "You haven't played anything yet — click a map, wait for it to load, then pick a difficulty!";
                     }
                 })
             }
@@ -231,7 +232,7 @@
             if (window.localforage) {
                 window.localforage.getItem("likedsidset", function(err, val){
                     if (err) {
-                        document.getElementById("beatmap-list-liked").innerText = "收藏夹加载失败。";
+                        document.getElementById("beatmap-list-liked").innerText = "Failed to load favourites.";
                         return;
                     }
                     if (val && val.size) {
@@ -241,12 +242,12 @@
                             addBeatmapSid(list[i], listlike);
                     }
                     else {
-                        document.getElementById("beatmap-list-liked").innerText = "你还没有收藏一首歌曲哦！点击曲目右下角的爱心以收藏这个曲目。";
+                        document.getElementById("beatmap-list-liked").innerText = "No favourites yet — click the ♥ on a beatmap to save it.";
                     }
                 });
             }
             else {
-                alert("localforage not supported")
+                alert("Storage not supported")
             }
         </script>
         <!-- Global site tag (gtag.js) - Google Analytics -->
@@ -255,8 +256,97 @@
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'UA-169262247-1');
+</script>
+
+<!-- Mobile in-game controls overlay -->
+<div class="mobile-controls" id="mobile-controls">
+    <div class="mobile-ctrl-btn" id="mob-pause" title="Pause">⏸</div>
+    <div class="mobile-relax-indicator" id="mob-relax-indicator">RELAX</div>
+    <div class="mobile-ctrl-btn" id="mob-skip" title="Skip intro">⏭</div>
+</div>
+
+<!-- Skin toast -->
+<div class="skin-toast" id="skin-toast"></div>
+
+<script>
+// ── Nav skin quick-import ──────────────────────────────────────────────────
+(function() {
+    var navInput = document.getElementById('nav-skin-input');
+    var navBtn   = document.getElementById('nav-skin-btn');
+    var navInd   = document.getElementById('nav-skin-indicator');
+    if (!navBtn || !navInput) return;
+
+    navBtn.addEventListener('click', function(e) {
+        // only trigger file input if not already propagating from it
+        if (e.target !== navInput) navInput.click();
+    });
+
+    navInput.addEventListener('change', function() {
+        var file = navInput.files[0];
+        if (!file) return;
+        navInput.value = '';
+        var ext = file.name.split('.').pop().toLowerCase();
+        if (ext !== 'osk' && ext !== 'zip') {
+            showSkinToast('❌ Please use a .osk file (rename skin zip to .osk)');
+            return;
+        }
+        if (!window.SkinLoader) { showSkinToast('❌ Skin loader not ready'); return; }
+        showSkinToast('⏳ Loading skin…');
+        SkinLoader.load(file,
+            function(pct) {},
+            function(name) {
+                navInd.style.display = 'inline-block';
+                showSkinToast('🎨 Skin loaded: ' + name);
+            },
+            function(e) { showSkinToast('❌ Skin error: ' + e); }
+        );
+    });
+
+    // Show indicator if skin already active
+    if (window.SkinLoader && SkinLoader.getSavedSkinName()) {
+        navInd.style.display = 'inline-block';
+    }
+    window.addEventListener('DOMContentLoaded', function() {
+        if (window.SkinLoader && SkinLoader.getSavedSkinName())
+            navInd.style.display = 'inline-block';
+    });
+})();
+
+function showSkinToast(msg) {
+    var t = document.getElementById('skin-toast');
+    if (!t) return;
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+
+// ── Mobile in-game controls ────────────────────────────────────────────────
+(function() {
+    var pauseBtn = document.getElementById('mob-pause');
+    var skipBtn  = document.getElementById('mob-skip');
+    var relaxInd = document.getElementById('mob-relax-indicator');
+
+    if (pauseBtn) {
+        pauseBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (window.playback) playback.pause();
+        }, { passive: false });
+    }
+    if (skipBtn) {
+        skipBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            if (window.playback && !playback.skipped) playback.skip();
+        }, { passive: false });
+    }
+    // Keep relax indicator in sync
+    setInterval(function() {
+        if (!relaxInd) return;
+        var isRelax = window.game && game.relax;
+        relaxInd.classList.toggle('active', !!isRelax);
+    }, 500);
+})();
 </script>
     </body>
 </html>
